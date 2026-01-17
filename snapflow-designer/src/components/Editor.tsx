@@ -18,7 +18,7 @@ import { Rocket } from 'lucide-react';
 import '@xyflow/react/dist/style.css';
 
 import { useStore } from '../store/useStore';
-import { convertToBPMN } from '../lib/bpmnConverter';
+import { mapToBPMN } from '../lib/bpmnMapper';
 import { TaskNode } from './nodes/TaskNode';
 import { GatewayNode } from './nodes/GatewayNode';
 import { AIAgentNode } from './nodes/AIAgentNode';
@@ -103,16 +103,19 @@ function Flow() {
         setSelectedEdge(null);
     }, [setSelectedNode, setSelectedEdge]);
 
+
+    // inside Flow component
     const handleDeploy = async () => {
-        const xml = convertToBPMN(nodes, edges);
+        const xml = mapToBPMN(nodes, edges);
+        const deploymentName = `snapflow_${Date.now()}`;
         console.log('Deploying BPMN:', xml);
 
         try {
-            const response = await fetch('http://localhost:8081/api/deploy', {
+            const response = await fetch('http://localhost:8081/api/processes/deploy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: `snapflow_${Date.now()}`,
+                    name: deploymentName,
                     xml: xml
                 }),
             });
@@ -121,11 +124,12 @@ function Flow() {
                 const data = await response.json();
                 alert(`Successfully Deployed!\nDeployment ID: ${data.id}`);
             } else {
-                throw new Error('Deployment failed');
+                const errorData = await response.text();
+                throw new Error(errorData || 'Deployment failed');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Deployment error:', error);
-            alert('Error deploying workflow. Make sure the engine is running.');
+            alert(`Error deploying workflow: ${error.message}. Make sure the engine is running.`);
         }
     };
 
