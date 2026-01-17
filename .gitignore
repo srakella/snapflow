@@ -26,6 +26,8 @@ snapflow-engine/.settings/
 snapflow-engine/.classpath
 snapflow-engine/.project
 snapflow-engine/.factorypath
+snapflow-engine/.gradle/
+snapflow-engine/build/
 
 # Infrastructure
 .env
