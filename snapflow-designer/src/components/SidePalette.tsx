@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, GitBranch, Sparkles } from 'lucide-react';
+import { User, GitBranch, Sparkles, Play, Square } from 'lucide-react';
 
 export function SidePalette() {
     const onDragStart = (event: React.DragEvent, nodeType: string) => {
@@ -8,6 +8,8 @@ export function SidePalette() {
     };
 
     const nodeTypes = [
+        { type: 'start', label: 'Start Event', icon: <Play size={18} />, color: 'bg-green-500' },
+        { type: 'end', label: 'End Event', icon: <Square size={18} />, color: 'bg-red-500' },
         { type: 'task', label: 'User Task', icon: <User size={18} />, color: 'bg-blue-500' },
         { type: 'gateway', label: 'Gateway', icon: <GitBranch size={18} />, color: 'bg-orange-500' },
         { type: 'aiAgent', label: 'AI Agent', icon: <Sparkles size={18} />, color: 'bg-purple-600' },
