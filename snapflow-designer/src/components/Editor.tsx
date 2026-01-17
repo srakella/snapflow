@@ -12,6 +12,7 @@ import {
     addEdge,
     useReactFlow,
     NodeTypes,
+    MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -32,6 +33,10 @@ const defaultEdgeOptions = {
     type: 'step',
     animated: true,
     style: { strokeWidth: 2, stroke: '#94a3b8' },
+    markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#94a3b8',
+    },
 };
 
 function Flow() {
@@ -44,6 +49,7 @@ function Flow() {
         onConnect,
         addNode,
         setSelectedNode,
+        setSelectedEdge,
     } = useStore();
 
     const { screenToFlowPosition } = useReactFlow();
@@ -82,9 +88,14 @@ function Flow() {
         setSelectedNode(node);
     }, [setSelectedNode]);
 
+    const onEdgeClick = useCallback((_: React.MouseEvent, edge: any) => {
+        setSelectedEdge(edge);
+    }, [setSelectedEdge]);
+
     const onPaneClick = useCallback(() => {
         setSelectedNode(null);
-    }, [setSelectedNode]);
+        setSelectedEdge(null);
+    }, [setSelectedNode, setSelectedEdge]);
 
     return (
         <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
@@ -100,6 +111,7 @@ function Flow() {
                     onDrop={onDrop}
                     onDragOver={onDragOver}
                     onNodeClick={onNodeClick}
+                    onEdgeClick={onEdgeClick}
                     onPaneClick={onPaneClick}
                     nodeTypes={nodeTypes}
                     defaultEdgeOptions={defaultEdgeOptions}

@@ -24,20 +24,24 @@ export type AppState = {
     nodes: AppNode[];
     edges: Edge[];
     selectedNode: AppNode | null;
+    selectedEdge: Edge | null;
     onNodesChange: OnNodesChange<AppNode>;
     onEdgesChange: OnEdgesChange;
     onConnect: (connection: Connection) => void;
     setNodes: (nodes: AppNode[]) => void;
     setEdges: (edges: Edge[]) => void;
     setSelectedNode: (node: AppNode | null) => void;
+    setSelectedEdge: (edge: Edge | null) => void;
     addNode: (node: AppNode) => void;
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
+    updateEdgeData: (edgeId: string, data: Partial<Record<string, any>>) => void;
 };
 
 export const useStore = create<AppState>((set, get) => ({
     nodes: [],
     edges: [],
     selectedNode: null,
+    selectedEdge: null,
     onNodesChange: (changes) => {
         set({
             nodes: applyNodeChanges(changes, get().nodes) as AppNode[],
@@ -55,7 +59,8 @@ export const useStore = create<AppState>((set, get) => ({
     },
     setNodes: (nodes: AppNode[]) => set({ nodes }),
     setEdges: (edges: Edge[]) => set({ edges }),
-    setSelectedNode: (node: AppNode | null) => set({ selectedNode: node }),
+    setSelectedNode: (node: AppNode | null) => set({ selectedNode: node, selectedEdge: null }),
+    setSelectedEdge: (edge: Edge | null) => set({ selectedEdge: edge, selectedNode: null }),
     addNode: (node: AppNode) => set({ nodes: [...get().nodes, node] }),
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => {
         set({
@@ -64,6 +69,16 @@ export const useStore = create<AppState>((set, get) => ({
                     return { ...node, data: { ...node.data, ...data } };
                 }
                 return node;
+            }),
+        });
+    },
+    updateEdgeData: (edgeId: string, data: Partial<Record<string, any>>) => {
+        set({
+            edges: get().edges.map((edge) => {
+                if (edge.id === edgeId) {
+                    return { ...edge, ...data };
+                }
+                return edge;
             }),
         });
     },
