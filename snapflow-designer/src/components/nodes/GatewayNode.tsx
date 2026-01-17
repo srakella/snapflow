@@ -14,10 +14,26 @@ export function GatewayNode({ data, selected }: NodeProps<AppNode>) {
                 {data.label}
             </div>
 
-            <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-gray-400" />
-            <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-gray-400" />
-            <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-gray-400" />
-            <Handle type="source" position={Position.Right} className="w-2 h-2 !bg-gray-400" />
+            <Handle
+                type="target"
+                position={Position.Top}
+                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-primary !border-white ring-2 ring-primary/30' : '!bg-gray-300 !border-gray-400 opacity-50'}`}
+            />
+            <Handle
+                type="source"
+                position={Position.Bottom}
+                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-primary !border-white ring-2 ring-primary/30' : '!bg-gray-300 !border-gray-400 opacity-50'}`}
+            />
+            <Handle
+                type="target"
+                position={Position.Left}
+                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-primary !border-white ring-2 ring-primary/30' : '!bg-gray-300 !border-gray-400 opacity-50'}`}
+            />
+            <Handle
+                type="source"
+                position={Position.Right}
+                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-primary !border-white ring-2 ring-primary/30' : '!bg-gray-300 !border-gray-400 opacity-50'}`}
+            />
         </div>
     );
 }

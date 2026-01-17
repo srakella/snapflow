@@ -25,10 +25,26 @@ export function AIAgentNode({ data, selected }: NodeProps<AppNode>) {
         }
       `}</style>
 
-            <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-purple-400" />
-            <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-purple-400" />
-            <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-purple-400" />
-            <Handle type="source" position={Position.Right} className="w-2 h-2 !bg-purple-400" />
+            <Handle
+                type="target"
+                position={Position.Top}
+                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-primary !border-white ring-2 ring-primary/30' : '!bg-purple-300 !border-purple-400 opacity-50'}`}
+            />
+            <Handle
+                type="source"
+                position={Position.Bottom}
+                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-primary !border-white ring-2 ring-primary/30' : '!bg-purple-300 !border-purple-400 opacity-50'}`}
+            />
+            <Handle
+                type="target"
+                position={Position.Left}
+                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-primary !border-white ring-2 ring-primary/30' : '!bg-purple-300 !border-purple-400 opacity-50'}`}
+            />
+            <Handle
+                type="source"
+                position={Position.Right}
+                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-primary !border-white ring-2 ring-primary/30' : '!bg-purple-300 !border-purple-400 opacity-50'}`}
+            />
         </div>
     );
 }
