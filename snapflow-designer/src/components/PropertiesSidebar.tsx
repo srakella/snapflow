@@ -5,23 +5,25 @@ import { X, Settings2 } from 'lucide-react';
 export function PropertiesSidebar() {
     const { selectedNode, setSelectedNode, updateNodeData, selectedEdge, setSelectedEdge, updateEdgeData } = useStore();
 
-    if (!selectedNode && !selectedEdge) return null;
-
-    const handleClose = () => {
-        setSelectedNode(null);
-        setSelectedEdge(null);
-    };
-
+    // Hooks must be called before any early returns
     const [availableForms, setAvailableForms] = React.useState<any[]>([]);
 
     React.useEffect(() => {
-        if (selectedNode?.type === 'task') {
+        if (selectedNode?.type === 'task' || selectedNode?.type === 'start') {
             fetch('http://localhost:8081/api/forms')
                 .then(res => res.json())
                 .then(data => setAvailableForms(data))
                 .catch(err => console.error("Failed to fetch forms", err));
         }
     }, [selectedNode?.type]);
+
+    // Early return after all hooks
+    if (!selectedNode && !selectedEdge) return null;
+
+    const handleClose = () => {
+        setSelectedNode(null);
+        setSelectedEdge(null);
+    };
 
     return (
         <aside className="w-80 border-l bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-300">
@@ -139,8 +141,18 @@ export function PropertiesSidebar() {
                                                 <option key={form.id} value={form.id}>{form.name}</option>
                                             ))}
                                         </select>
-                                        <div className="text-[10px] text-gray-400 mt-1">
-                                            Select a form created in the Form Builder.
+                                        <div className="mt-2 flex items-center justify-between">
+                                            <div className="text-[10px] text-gray-400">
+                                                Select a form created in the Form Builder.
+                                            </div>
+                                            <a
+                                                href="/forms/designer"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs font-bold text-[#D41C2C] hover:text-[#B81926] transition-colors flex items-center gap-1"
+                                            >
+                                                <span>+ New Form</span>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
