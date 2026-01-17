@@ -1,9 +1,10 @@
 import { AppNode } from '../store/useStore';
 import { Edge } from '@xyflow/react';
 
-export function mapToBPMN(nodes: AppNode[], edges: Edge[]): string {
-    const processId = "SnapFlow_Process_" + Date.now();
-    const processName = "SnapFlow Workflow";
+export function mapToBPMN(nodes: AppNode[], edges: Edge[], processName: string = "SnapFlow Workflow"): string {
+    // Sanitize name for ID (remove spaces/special chars)
+    const sanitizedName = processName.replace(/[^a-zA-Z0-9]/g, '_');
+    const processId = `Process_${sanitizedName}_${Date.now()}`;
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
@@ -25,14 +26,17 @@ export function mapToBPMN(nodes: AppNode[], edges: Edge[]): string {
 
         switch (node.type) {
             case 'start':
-                xml += `        <startEvent id="${id}" name="${name}" />\n`;
+                const startFormKey = (node.data as any).config?.formKey ? ` flowable:formKey="${(node.data as any).config.formKey}"` : '';
+                xml += `        <startEvent id="${id}" name="${name}"${startFormKey} />\n`;
                 break;
             case 'end':
                 xml += `        <endEvent id="${id}" name="${name}" />\n`;
                 break;
             case 'task':
+                const assignee = (node.data as any).config?.assignee ? ` flowable:assignee="${(node.data as any).config.assignee}"` : '';
                 const formKey = (node.data as any).config?.formKey ? ` flowable:formKey="${(node.data as any).config.formKey}"` : '';
-                xml += `        <userTask id="${id}" name="${name}"${formKey} />\n`;
+                const isReview = (node.data as any).config?.viewPreviousData ? ` flowable:isReviewStep="true"` : '';
+                xml += `        <userTask id="${id}" name="${name}"${assignee}${formKey}${isReview} />\n`;
                 break;
             case 'aiAgent':
                 const aiConfig = (node.data as any).config || {};

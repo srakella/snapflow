@@ -2,17 +2,15 @@ spring:
   application:
     name: snapflow-engine
   datasource:
-    url: jdbc:h2:mem:snapflow;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  h2:
-    console:
-      enabled: true
+    url: jdbc:postgresql://localhost:5432/snapflow
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
   data:
     mongodb:
       uri: mongodb://localhost:27017/snapflow
@@ -23,7 +21,7 @@ server:
 # Flowable configuration
 flowable:
   database-schema-update: true
-  check-process-definitions: false
+  check-process-definitions: true
 
 # LangChain4j Gemini configuration
 langchain4j:

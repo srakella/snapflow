@@ -14,7 +14,8 @@ import {
     NodeTypes,
     MarkerType,
 } from '@xyflow/react';
-import { Rocket } from 'lucide-react';
+import { Rocket, LayoutGrid, Home } from 'lucide-react';
+import Link from 'next/link';
 import '@xyflow/react/dist/style.css';
 
 import { useStore } from '../store/useStore';
@@ -111,10 +112,9 @@ function Flow() {
 
     const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
 
-    // inside Flow component
     const handleDeploy = async (name: string) => {
         const flowObject = toObject();
-        const xml = mapToBPMN(nodes, edges);
+        const xml = mapToBPMN(nodes, edges, name);
 
         console.log('Dual-Save: Saving JSON + XML...');
 
@@ -161,16 +161,27 @@ function Flow() {
                     <MiniMap zoomable pannable />
 
                     <Panel position="top-left" className="bg-white/95 backdrop-blur-sm p-5 border-t-4 border-[#D41C2C] rounded-sm shadow-xl flex items-center gap-6">
-                        <div>
-                            <h1 className="text-2xl font-serif font-bold text-[#D41C2C] leading-none tracking-tight">
+                        <Link href="/" className="hover:opacity-80 transition-opacity group">
+                            <h1 className="text-2xl font-serif font-bold text-[#D41C2C] leading-none tracking-tight flex items-center gap-2">
+                                <Home size={20} className="text-[#D41C2C] group-hover:scale-110 transition-transform" />
                                 SnapFlow
                             </h1>
                             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Enterprise Workflow Engine</p>
-                        </div>
+                        </Link>
 
                         <div className="h-10 w-[1px] bg-gray-200" />
 
                         <div className="flex gap-3">
+                            <Link href="/" className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-sm text-sm font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide">
+                                <Home size={16} />
+                                Home
+                            </Link>
+
+                            <Link href="/dashboard" className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-sm text-sm font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide">
+                                <LayoutGrid size={16} />
+                                Monitor
+                            </Link>
+
                             <LoadWorkflowButton
                                 onLoad={(json: any) => {
                                     const { x, y, zoom } = json.viewport;

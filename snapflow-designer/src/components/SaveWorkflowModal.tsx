@@ -1,4 +1,5 @@
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 interface SaveWorkflowModalProps {
     isOpen: boolean;
@@ -7,6 +8,7 @@ interface SaveWorkflowModalProps {
 }
 
 export function SaveWorkflowModal({ isOpen, onClose, onSave }: SaveWorkflowModalProps) {
+    const router = useRouter();
     const [name, setName] = React.useState(`Workflow ${new Date().toLocaleTimeString()}`);
     const [status, setStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
     const [logs, setLogs] = React.useState<string[]>([]);
@@ -24,6 +26,7 @@ export function SaveWorkflowModal({ isOpen, onClose, onSave }: SaveWorkflowModal
                 onClose();
                 setStatus('idle');
                 setLogs([]);
+                router.push('/dashboard');
             }, 2000);
         } catch (e: any) {
             setLogs(prev => [...prev, `❌ Error: ${e.message}`]);

@@ -12,6 +12,17 @@ export function PropertiesSidebar() {
         setSelectedEdge(null);
     };
 
+    const [availableForms, setAvailableForms] = React.useState<any[]>([]);
+
+    React.useEffect(() => {
+        if (selectedNode?.type === 'task') {
+            fetch('http://localhost:8081/api/forms')
+                .then(res => res.json())
+                .then(data => setAvailableForms(data))
+                .catch(err => console.error("Failed to fetch forms", err));
+        }
+    }, [selectedNode?.type]);
+
     return (
         <aside className="w-80 border-l bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-300">
             <div className="p-4 border-b flex items-center justify-between bg-gray-50">
@@ -94,21 +105,44 @@ export function PropertiesSidebar() {
                                 </div>
                             )}
 
-                            {selectedNode.type === 'task' && (
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Assigned Group</label>
-                                    <select
-                                        className="w-full p-2 border rounded-md"
-                                        value={selectedNode.data.config?.assignee || ''}
-                                        onChange={(e) => updateNodeData(selectedNode.id, {
-                                            config: { ...selectedNode.data.config, assignee: e.target.value }
-                                        })}
-                                    >
-                                        <option value="">Unassigned</option>
-                                        <option value="admins">Admins</option>
-                                        <option value="approvers">Approvers</option>
-                                        <option value="users">Standard Users</option>
-                                    </select>
+                            {(selectedNode.type === 'task' || selectedNode.type === 'start') && (
+                                <div className="space-y-4">
+                                    {selectedNode.type === 'task' && (
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Assigned Group</label>
+                                            <select
+                                                className="w-full p-2 border rounded-md"
+                                                value={selectedNode.data.config?.assignee || ''}
+                                                onChange={(e) => updateNodeData(selectedNode.id, {
+                                                    config: { ...selectedNode.data.config, assignee: e.target.value }
+                                                })}
+                                            >
+                                                <option value="">Unassigned</option>
+                                                <option value="admins">Admins</option>
+                                                <option value="approvers">Approvers</option>
+                                                <option value="users">Standard Users</option>
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Attach Form</label>
+                                        <select
+                                            className="w-full p-2 border rounded-md"
+                                            value={selectedNode.data.config?.formKey || ''}
+                                            onChange={(e) => updateNodeData(selectedNode.id, {
+                                                config: { ...selectedNode.data.config, formKey: e.target.value }
+                                            })}
+                                        >
+                                            <option value="">No Form Attached</option>
+                                            {availableForms.map(form => (
+                                                <option key={form.id} value={form.id}>{form.name}</option>
+                                            ))}
+                                        </select>
+                                        <div className="text-[10px] text-gray-400 mt-1">
+                                            Select a form created in the Form Builder.
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
