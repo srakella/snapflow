@@ -38,6 +38,30 @@ services:
     depends_on:
       - postgres
 
+  snapflow-engine:
+    build: ./snapflow-engine
+    container_name: snapflow-engine
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/snapflow
+      SPRING_DATASOURCE_USERNAME: snapflow
+      SPRING_DATASOURCE_PASSWORD: snapflow
+    depends_on:
+      - postgres
+
+  snapflow-designer:
+    build: ./snapflow-designer
+    container_name: snapflow-designer
+    ports:
+      - "3000:3000"
+    # Note: NEXT_PUBLIC_ variables are baked at build time. 
+    # If dynamic configuration is needed, it requires a different setup.
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - snapflow-engine
+
 volumes:
   postgres_data:
   mongodb_data:
