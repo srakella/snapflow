@@ -1,0 +1,31 @@
+# Common
+.DS_Store
+*.log
+.idea/
+.vscode/
+*.swp
+*.bak
+
+# Next.js (snapflow-designer)
+snapflow-designer/node_modules/
+snapflow-designer/.next/
+snapflow-designer/out/
+snapflow-designer/build/
+snapflow-designer/.env*
+snapflow-designer/*.tsbuildinfo
+snapflow-designer/next-env.d.ts
+
+# Spring Boot (snapflow-engine)
+snapflow-engine/target/
+snapflow-engine/*.jar
+snapflow-engine/*.war
+snapflow-engine/*.zip
+snapflow-engine/*.tar.gz
+snapflow-engine/bin/
+snapflow-engine/.settings/
+snapflow-engine/.classpath
+snapflow-engine/.project
+snapflow-engine/.factorypath
+
+# Infrastructure
+.env

@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: snapflow-postgres
+    environment:
+      POSTGRES_DB: snapflow
+      POSTGRES_USER: snapflow
+      POSTGRES_PASSWORD: snapflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mongodb:
+    image: mongo:7
+    container_name: snapflow-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: snapflow
+    volumes:
+      - mongodb_data:/data/db
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.0
+    container_name: snapflow-keycloak
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/snapflow
+      KC_DB_USERNAME: snapflow
+      KC_DB_PASSWORD: snapflow
+      KC_HOSTNAME: localhost
+    command: start-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  mongodb_data:
