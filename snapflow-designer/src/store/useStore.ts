@@ -1,0 +1,70 @@
+import { create } from 'zustand';
+import {
+    Connection,
+    Edge,
+    EdgeChange,
+    Node,
+    NodeChange,
+    addEdge,
+    applyNodeChanges,
+    applyEdgeChanges,
+    OnNodesChange,
+    OnEdgesChange,
+} from '@xyflow/react';
+
+export type NodeData = {
+    label: string;
+    description?: string;
+    config?: Record<string, any>;
+};
+
+export type AppNode = Node<NodeData>;
+
+export type AppState = {
+    nodes: AppNode[];
+    edges: Edge[];
+    selectedNode: AppNode | null;
+    onNodesChange: OnNodesChange<AppNode>;
+    onEdgesChange: OnEdgesChange;
+    onConnect: (connection: Connection) => void;
+    setNodes: (nodes: AppNode[]) => void;
+    setEdges: (edges: Edge[]) => void;
+    setSelectedNode: (node: AppNode | null) => void;
+    addNode: (node: AppNode) => void;
+    updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
+};
+
+export const useStore = create<AppState>((set, get) => ({
+    nodes: [],
+    edges: [],
+    selectedNode: null,
+    onNodesChange: (changes) => {
+        set({
+            nodes: applyNodeChanges(changes, get().nodes) as AppNode[],
+        });
+    },
+    onEdgesChange: (changes: EdgeChange[]) => {
+        set({
+            edges: applyEdgeChanges(changes, get().edges),
+        });
+    },
+    onConnect: (connection: Connection) => {
+        set({
+            edges: addEdge(connection, get().edges),
+        });
+    },
+    setNodes: (nodes: AppNode[]) => set({ nodes }),
+    setEdges: (edges: Edge[]) => set({ edges }),
+    setSelectedNode: (node: AppNode | null) => set({ selectedNode: node }),
+    addNode: (node: AppNode) => set({ nodes: [...get().nodes, node] }),
+    updateNodeData: (nodeId: string, data: Partial<NodeData>) => {
+        set({
+            nodes: get().nodes.map((node) => {
+                if (node.id === nodeId) {
+                    return { ...node, data: { ...node.data, ...data } };
+                }
+                return node;
+            }),
+        });
+    },
+}));
