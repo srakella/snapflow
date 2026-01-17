@@ -20,7 +20,12 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     implementation 'org.flowable:flowable-spring-boot-starter:7.1.0'
+    implementation 'dev.langchain4j:langchain4j-google-ai-gemini-spring-boot-starter:1.0.0-beta1'
+    implementation 'me.paulschwarz:spring-dotenv:5.1.0'
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+    runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

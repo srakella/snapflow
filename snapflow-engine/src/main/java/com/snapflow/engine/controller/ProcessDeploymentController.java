@@ -15,10 +15,13 @@ import java.util.Map;
 public class ProcessDeploymentController {
 
     private final RepositoryService repositoryService;
+    private final org.flowable.engine.RuntimeService runtimeService;
 
     @Autowired
-    public ProcessDeploymentController(RepositoryService repositoryService) {
+    public ProcessDeploymentController(RepositoryService repositoryService,
+            org.flowable.engine.RuntimeService runtimeService) {
         this.repositoryService = repositoryService;
+        this.runtimeService = runtimeService;
     }
 
     @PostMapping(value = "/deploy", consumes = "application/json")
@@ -46,6 +49,42 @@ public class ProcessDeploymentController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Deployment failed: " + e.getMessage());
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<?> listProcessDefinitions() {
+        return ResponseEntity.ok(repositoryService.createProcessDefinitionQuery()
+                .latestVersion()
+                .list()
+                .stream()
+                .map(pd -> Map.of(
+                        "id", pd.getId(),
+                        "key", pd.getKey(),
+                        "name", pd.getName(),
+                        "version", pd.getVersion()))
+                .toList());
+    }
+
+    @PostMapping(value = "/start", consumes = "application/json")
+    public ResponseEntity<?> startProcess(@RequestBody Map<String, Object> payload) {
+        String processDefinitionKey = (String) payload.get("processDefinitionKey");
+        Map<String, Object> variables = (Map<String, Object>) payload.get("variables");
+
+        if (processDefinitionKey == null || processDefinitionKey.isEmpty()) {
+            return ResponseEntity.badRequest().body("processDefinitionKey is required");
+        }
+
+        try {
+            org.flowable.engine.runtime.ProcessInstance processInstance = runtimeService
+                    .startProcessInstanceByKey(processDefinitionKey, variables);
+            return ResponseEntity.ok(Map.of(
+                    "id", processInstance.getId(),
+                    "processDefinitionId", processInstance.getProcessDefinitionId(),
+                    "isEnded", processInstance.isEnded()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to start process: " + e.getMessage());
         }
     }
 }

@@ -57,14 +57,38 @@ export function PropertiesSidebar() {
                             {selectedNode.type === 'aiAgent' && (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Model Prompt</label>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">System Prompt</label>
                                         <textarea
-                                            className="w-full p-2 border rounded-md bg-purple-50 text-sm italic"
-                                            value={selectedNode.data.config?.prompt || ''}
+                                            className="w-full p-2 border rounded-md bg-purple-50 text-sm italic min-h-[80px]"
+                                            value={selectedNode.data.config?.systemPrompt || ''}
                                             onChange={(e) => updateNodeData(selectedNode.id, {
-                                                config: { ...selectedNode.data.config, prompt: e.target.value }
+                                                config: { ...selectedNode.data.config, systemPrompt: e.target.value }
                                             })}
                                             placeholder="System instructions for the AI..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Input Variable Name</label>
+                                        <input
+                                            type="text"
+                                            className="w-full p-2 border rounded-md text-sm"
+                                            value={selectedNode.data.config?.inputVariableName || ''}
+                                            onChange={(e) => updateNodeData(selectedNode.id, {
+                                                config: { ...selectedNode.data.config, inputVariableName: e.target.value }
+                                            })}
+                                            placeholder="e.g. customerRequest"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Output Variable Name</label>
+                                        <input
+                                            type="text"
+                                            className="w-full p-2 border rounded-md text-sm"
+                                            value={selectedNode.data.config?.outputVariableName || ''}
+                                            onChange={(e) => updateNodeData(selectedNode.id, {
+                                                config: { ...selectedNode.data.config, outputVariableName: e.target.value }
+                                            })}
+                                            placeholder="e.g. aiResponse"
                                         />
                                     </div>
                                 </div>

@@ -31,3 +31,4 @@ snapflow-engine/build/
 
 # Infrastructure
 .env
+snapflow-engine/.env

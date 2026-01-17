@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: snapflow-engine
+  datasource:
+    url: jdbc:h2:mem:snapflow;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/snapflow
+
+server:
+  port: 8081
+
+# Flowable configuration
+flowable:
+  database-schema-update: true
+  check-process-definitions: false
+
+# LangChain4j Gemini configuration
+langchain4j:
+  google-ai-gemini:
+    chat-model:
+      api-key: ${GEMINI_API_KEY}
+      model-name: gemini-2.0-flash

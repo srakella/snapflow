@@ -35,7 +35,14 @@ export function mapToBPMN(nodes: AppNode[], edges: Edge[]): string {
                 xml += `        <userTask id="${id}" name="${name}"${formKey} />\n`;
                 break;
             case 'aiAgent':
-                xml += `        <serviceTask id="${id}" name="${name}" flowable:delegateExpression="\${aiAgentDelegate}" />\n`;
+                const aiConfig = (node.data as any).config || {};
+                xml += `        <serviceTask id="${id}" name="${name}" flowable:delegateExpression="\${aiAgentDelegate}">\n`;
+                xml += `            <extensionElements>\n`;
+                xml += `                <flowable:field name="systemPrompt" stringValue="${aiConfig.systemPrompt || ''}" />\n`;
+                xml += `                <flowable:field name="inputVariableName" stringValue="${aiConfig.inputVariableName || ''}" />\n`;
+                xml += `                <flowable:field name="outputVariableName" stringValue="${aiConfig.outputVariableName || ''}" />\n`;
+                xml += `            </extensionElements>\n`;
+                xml += `        </serviceTask>\n`;
                 break;
             case 'gateway':
                 xml += `        <exclusiveGateway id="${id}" name="${name}" />\n`;

@@ -63,23 +63,35 @@ export const useStore = create<AppState>((set, get) => ({
     setSelectedEdge: (edge: Edge | null) => set({ selectedEdge: edge, selectedNode: null }),
     addNode: (node: AppNode) => set({ nodes: [...get().nodes, node] }),
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => {
+        const { nodes, selectedNode } = get();
+        const updatedNodes = nodes.map((node) => {
+            if (node.id === nodeId) {
+                return { ...node, data: { ...node.data, ...data } };
+            }
+            return node;
+        });
+
         set({
-            nodes: get().nodes.map((node) => {
-                if (node.id === nodeId) {
-                    return { ...node, data: { ...node.data, ...data } };
-                }
-                return node;
-            }),
+            nodes: updatedNodes,
+            selectedNode: selectedNode?.id === nodeId
+                ? { ...selectedNode, data: { ...selectedNode.data, ...data } }
+                : selectedNode,
         });
     },
     updateEdgeData: (edgeId: string, data: Partial<Record<string, any>>) => {
+        const { edges, selectedEdge } = get();
+        const updatedEdges = edges.map((edge) => {
+            if (edge.id === edgeId) {
+                return { ...edge, ...data };
+            }
+            return edge;
+        });
+
         set({
-            edges: get().edges.map((edge) => {
-                if (edge.id === edgeId) {
-                    return { ...edge, ...data };
-                }
-                return edge;
-            }),
+            edges: updatedEdges,
+            selectedEdge: selectedEdge?.id === edgeId
+                ? { ...selectedEdge, ...data }
+                : selectedEdge,
         });
     },
 }));

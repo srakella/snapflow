@@ -27,6 +27,9 @@ import { EndNode } from './nodes/EndNode';
 import { SidePalette } from './SidePalette';
 import { PropertiesSidebar } from './PropertiesSidebar';
 
+import { LoadWorkflowButton } from './LoadWorkflowButton';
+import { SaveWorkflowModal } from './SaveWorkflowModal';
+
 const nodeTypes: NodeTypes = {
     start: StartNode as any,
     end: EndNode as any,
@@ -56,9 +59,11 @@ function Flow() {
         addNode,
         setSelectedNode,
         setSelectedEdge,
+        setNodes,
+        setEdges,
     } = useStore();
 
-    const { screenToFlowPosition } = useReactFlow();
+    const { screenToFlowPosition, toObject } = useReactFlow();
 
     const onDragOver = useCallback((event: React.DragEvent) => {
         event.preventDefault();
@@ -104,37 +109,35 @@ function Flow() {
     }, [setSelectedNode, setSelectedEdge]);
 
 
+    const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
+
     // inside Flow component
-    const handleDeploy = async () => {
+    const handleDeploy = async (name: string) => {
+        const flowObject = toObject();
         const xml = mapToBPMN(nodes, edges);
-        const deploymentName = `snapflow_${Date.now()}`;
-        console.log('Deploying BPMN:', xml);
 
-        try {
-            const response = await fetch('http://localhost:8081/api/processes/deploy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: deploymentName,
-                    xml: xml
-                }),
-            });
+        console.log('Dual-Save: Saving JSON + XML...');
 
-            if (response.ok) {
-                const data = await response.json();
-                alert(`Successfully Deployed!\nDeployment ID: ${data.id}`);
-            } else {
-                const errorData = await response.text();
-                throw new Error(errorData || 'Deployment failed');
-            }
-        } catch (error: any) {
-            console.error('Deployment error:', error);
-            alert(`Error deploying workflow: ${error.message}. Make sure the engine is running.`);
+        const response = await fetch('http://localhost:8081/api/workflows/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                json: flowObject,
+                xml: xml
+            }),
+        });
+
+        if (response.ok) {
+            return await response.json();
+        } else {
+            const errorData = await response.text();
+            throw new Error(errorData || 'Save failed');
         }
     };
 
     return (
-        <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
+        <div className="flex h-screen w-full bg-[#f4f4f4] overflow-hidden">
             <SidePalette />
 
             <div className="flex-grow relative" ref={reactFlowWrapper}>
@@ -157,29 +160,45 @@ function Flow() {
                     <Controls />
                     <MiniMap zoomable pannable />
 
-                    <Panel position="top-left" className="bg-white/90 backdrop-blur-sm p-4 border rounded-xl shadow-lg flex items-center gap-6">
+                    <Panel position="top-left" className="bg-white/95 backdrop-blur-sm p-5 border-t-4 border-[#D41C2C] rounded-sm shadow-xl flex items-center gap-6">
                         <div>
-                            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-                                SnapFlow Designer
+                            <h1 className="text-2xl font-serif font-bold text-[#D41C2C] leading-none tracking-tight">
+                                SnapFlow
                             </h1>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Workflow Engine v1.0</p>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Enterprise Workflow Engine</p>
                         </div>
 
-                        <div className="h-8 w-[1px] bg-gray-200" />
+                        <div className="h-10 w-[1px] bg-gray-200" />
 
-                        <button
-                            onClick={handleDeploy}
-                            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:shadow-indigo-500/20 hover:-translate-y-0.5 transition-all active:scale-95 group"
-                        >
-                            <Rocket size={16} className="group-hover:animate-bounce" />
-                            Launch to Engine
-                        </button>
+                        <div className="flex gap-3">
+                            <LoadWorkflowButton
+                                onLoad={(json: any) => {
+                                    const { x, y, zoom } = json.viewport;
+                                    setNodes(json.nodes || []);
+                                    setEdges(json.edges || []);
+                                }}
+                            />
+
+                            <button
+                                onClick={() => setIsSaveModalOpen(true)}
+                                className="flex items-center gap-2 bg-[#D41C2C] text-white px-5 py-2 rounded-sm text-sm font-bold shadow-sm hover:bg-[#B81926] hover:shadow-md transition-all active:scale-95 group uppercase tracking-wide"
+                            >
+                                <Rocket size={16} className="group-hover:animate-bounce" />
+                                Save & Launch
+                            </button>
+                        </div>
                     </Panel>
                 </ReactFlow>
-            </div>
+
+                <SaveWorkflowModal
+                    isOpen={isSaveModalOpen}
+                    onClose={() => setIsSaveModalOpen(false)}
+                    onSave={handleDeploy}
+                />
+            </div >
 
             <PropertiesSidebar />
-        </div>
+        </div >
     );
 }
 
