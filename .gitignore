@@ -32,3 +32,10 @@ snapflow-engine/build/
 # Infrastructure
 .env
 snapflow-engine/.env
+
+# Startup/Stop Scripts & Logs
+start-snapflow.sh
+stop-snapflow.sh
+status-snapflow.sh
+logs/
+*.pid

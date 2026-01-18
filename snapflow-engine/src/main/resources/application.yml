@@ -3,8 +3,8 @@ spring:
     name: snapflow-engine
   datasource:
     url: jdbc:postgresql://localhost:5432/snapflow
-    username: postgres
-    password: password
+    username: snapflow
+    password: snapflow
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

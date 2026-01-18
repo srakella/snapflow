@@ -14,7 +14,7 @@ import {
     NodeTypes,
     MarkerType,
 } from '@xyflow/react';
-import { Rocket, LayoutGrid, Home } from 'lucide-react';
+import { Rocket, LayoutGrid, Home, FileText } from 'lucide-react';
 import Link from 'next/link';
 import '@xyflow/react/dist/style.css';
 
@@ -175,6 +175,11 @@ function Flow() {
                             <Link href="/" className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-sm text-sm font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide">
                                 <Home size={16} />
                                 Home
+                            </Link>
+
+                            <Link href="/forms/designer" className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-sm text-sm font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide">
+                                <FileText size={16} />
+                                Forms
                             </Link>
 
                             <Link href="/dashboard" className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-sm text-sm font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide">
