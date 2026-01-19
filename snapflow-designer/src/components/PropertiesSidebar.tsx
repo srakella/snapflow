@@ -149,6 +149,62 @@ export function PropertiesSidebar() {
                                             </div>
                                         </div>
                                     </>
+                                ) : selectedNode.type === 'email' ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-pink-600 uppercase tracking-wider mb-2">Recipient Email</label>
+                                            <input
+                                                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-pink-500 transition-colors"
+                                                value={selectedNode.data.config?.recipient || ''}
+                                                onChange={(e) => updateNodeData(selectedNode.id, {
+                                                    config: { ...selectedNode.data.config, recipient: e.target.value }
+                                                })}
+                                                placeholder="user@example.com"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Subject</label>
+                                            <input
+                                                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-pink-500 transition-colors"
+                                                value={selectedNode.data.config?.subject || ''}
+                                                onChange={(e) => updateNodeData(selectedNode.id, {
+                                                    config: { ...selectedNode.data.config, subject: e.target.value }
+                                                })}
+                                                placeholder="Email subject..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Email Body</label>
+                                            <textarea
+                                                className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm min-h-[120px] outline-none focus:border-pink-500 transition-colors"
+                                                value={selectedNode.data.config?.body || ''}
+                                                onChange={(e) => updateNodeData(selectedNode.id, {
+                                                    config: { ...selectedNode.data.config, body: e.target.value }
+                                                })}
+                                                placeholder="Email message content..."
+                                            />
+                                        </div>
+                                    </div>
+                                ) : selectedNode.type === 'timer' ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">Duration</label>
+                                            <input
+                                                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-amber-500 transition-colors"
+                                                value={selectedNode.data.config?.duration || ''}
+                                                onChange={(e) => updateNodeData(selectedNode.id, {
+                                                    config: { ...selectedNode.data.config, duration: e.target.value }
+                                                })}
+                                                placeholder="e.g., 5m, 1h, 2d"
+                                            />
+                                        </div>
+                                        <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                                            <h4 className="text-amber-800 text-xs font-bold mb-1">Timer Format</h4>
+                                            <p className="text-amber-600 text-[11px] leading-relaxed">
+                                                Use ISO 8601 duration format (PT5M for 5 minutes, PT1H for 1 hour, P1D for 1 day)
+                                            </p>
+                                        </div>
+                                    </div>
                                 ) : selectedNode.type === 'task' ? (
                                     <div className="space-y-4">
                                         <div>

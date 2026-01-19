@@ -1,14 +1,15 @@
 import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Square } from 'lucide-react';
 import { AppNode } from '../../store/useStore';
 
 export function EndNode({ selected }: NodeProps<AppNode>) {
     return (
-        <div className={`w-10 h-10 rounded-full bg-white border-4 flex items-center justify-center transition-all ${selected ? 'border-red-600 ring-2 ring-red-600/20' : 'border-red-500'}`}>
-            <div className="w-4 h-4 rounded-full bg-red-600" />
+        <div className={`w-14 h-14 rounded-full bg-white border-4 border-gray-700 flex items-center justify-center transition-all duration-200 shadow-md ${selected ? 'ring-2 ring-gray-400 scale-110 border-gray-900' : 'hover:scale-105 hover:shadow-lg'}`}>
+            <Square size={16} className="text-gray-700 fill-gray-700" />
             <Handle
                 type="target"
                 position={Position.Left}
-                className={`w-3 h-3 transition-all hover:scale-125 !border-2 ${selected ? '!bg-red-600 !border-white ring-2 ring-red-600/30' : '!bg-gray-300 !border-gray-400 opacity-50'}`}
+                className={`w-3 h-3 transition-all hover:scale-150 !border-2 ${selected ? '!bg-gray-900 !border-white ring-2 ring-gray-400' : '!bg-gray-400 !border-gray-600'}`}
             />
         </div>
     );

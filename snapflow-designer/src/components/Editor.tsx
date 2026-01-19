@@ -25,27 +25,43 @@ import { GatewayNode } from './nodes/GatewayNode';
 import { AIAgentNode } from './nodes/AIAgentNode';
 import { StartNode } from './nodes/StartNode';
 import { EndNode } from './nodes/EndNode';
+import { EmailNode } from './nodes/EmailNode';
+import { TimerNode } from './nodes/TimerNode';
 import { SidePalette } from './SidePalette';
 import { PropertiesSidebar } from './PropertiesSidebar';
 
 import { LoadWorkflowButton } from './LoadWorkflowButton';
 import { SaveWorkflowModal } from './SaveWorkflowModal';
+import { UserTaskNode } from './nodes/UserTaskNode';
+import { ServiceTaskNode } from './nodes/ServiceTaskNode';
+import { RulesEngineNode } from './nodes/RulesEngineNode';
 
 const nodeTypes: NodeTypes = {
     start: StartNode as any,
     end: EndNode as any,
     task: TaskNode as any,
+    userTask: UserTaskNode as any,
+    serviceTask: ServiceTaskNode as any,
     gateway: GatewayNode as any,
     aiAgent: AIAgentNode as any,
+    email: EmailNode as any,
+    timer: TimerNode as any,
+    rulesEngine: RulesEngineNode as any,
 };
 
 const defaultEdgeOptions = {
-    type: 'step',
-    animated: true,
-    style: { strokeWidth: 2, stroke: '#94a3b8' },
+    type: 'smoothstep',
+    animated: false,
+    style: {
+        strokeWidth: 2,
+        stroke: '#6b7280',
+        strokeLinecap: 'round' as const,
+    },
     markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#94a3b8',
+        color: '#6b7280',
+        width: 16,
+        height: 16,
     },
 };
 
@@ -155,6 +171,18 @@ function Flow() {
                     nodeTypes={nodeTypes}
                     defaultEdgeOptions={defaultEdgeOptions}
                     fitView
+                    snapToGrid={true}
+                    snapGrid={[15, 15]}
+                    connectionRadius={30}
+                    connectionLineStyle={{
+                        strokeWidth: 2,
+                        stroke: '#6b7280',
+                        strokeDasharray: '5,5',
+                    }}
+                    minZoom={0.2}
+                    maxZoom={4}
+                    defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+                    proOptions={{ hideAttribution: true }}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
                     <Controls />
