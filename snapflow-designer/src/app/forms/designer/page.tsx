@@ -65,6 +65,7 @@ interface FormField {
     validation: ValidationRules;
     logic: LogicRules;
     data: DataConfig;
+    showOnStart?: boolean;
 }
 
 interface FormRow {
@@ -119,6 +120,7 @@ function SortableField({ field, rowId, isSelected, onClick, onDelete }: {
                         <div className="text-sm font-bold text-slate-900 truncate">
                             {field.label}
                             {field.validation?.required && <span className="text-[#D41C2C]">*</span>}
+                            {field.showOnStart && <span className="text-[10px] ml-2 text-purple-600 bg-purple-50 px-1 rounded border border-purple-200">Start</span>}
                             {field.logic?.visibility && <span className="text-[10px] ml-2 text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">Logic</span>}
                         </div>
                         <div className="text-xs text-slate-500 font-mono truncate">{field.key}</div>
@@ -715,6 +717,13 @@ export default function EnterpriseFormDesigner() {
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Help Text</label>
                                         <textarea value={selectedField.helpText || ''} onChange={(e) => updateField(selectedField.id, { helpText: e.target.value })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none resize-none" rows={2} />
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded border border-purple-200">
+                                        <div>
+                                            <span className="text-sm font-bold text-purple-800">Show on Start?</span>
+                                            <p className="text-[10px] text-purple-600">If checked, this field will be prompted when starting the workflow.</p>
+                                        </div>
+                                        <input type="checkbox" checked={selectedField.showOnStart || false} onChange={(e) => updateField(selectedField.id, { showOnStart: e.target.checked })} className="w-5 h-5 text-purple-600 border-2 border-purple-300 rounded focus:ring-purple-600" />
                                     </div>
                                 </>
                             )}

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 
 interface LoadWorkflowButtonProps {
     onLoad: (json: any) => void;
@@ -7,6 +8,7 @@ interface LoadWorkflowButtonProps {
 export function LoadWorkflowButton({ onLoad }: LoadWorkflowButtonProps) {
     const [isOpen, setIsOpen] = React.useState(false);
     const [workflows, setWorkflows] = React.useState<any[]>([]);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const handleLoadClick = async () => {
         setIsOpen(!isOpen);
@@ -21,8 +23,25 @@ export function LoadWorkflowButton({ onLoad }: LoadWorkflowButtonProps) {
         }
     };
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
     return (
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
             <button
                 onClick={handleLoadClick}
                 className="flex items-center gap-2 bg-white text-[#D41C2C] border border-[#D41C2C] px-4 py-2 rounded-sm text-sm font-bold hover:bg-[#D41C2C] hover:text-white transition-all active:scale-95 uppercase tracking-wide shadow-sm"
@@ -32,7 +51,16 @@ export function LoadWorkflowButton({ onLoad }: LoadWorkflowButtonProps) {
 
             {isOpen && (
                 <div className="absolute top-12 left-0 w-64 bg-white rounded-md shadow-xl border border-gray-200 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wilder mb-2 px-2 border-b border-gray-100 pb-1">Saved Workflows</h3>
+                    <div className="flex items-center justify-between mb-2 px-2 border-b border-gray-100 pb-1">
+                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Saved Workflows</h3>
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+                            title="Close"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
                     <div className="space-y-1 max-h-60 overflow-y-auto">
                         {workflows.length === 0 ? (
                             <div className="text-sm text-gray-400 px-2 py-4 text-center italic">No saved workflows</div>

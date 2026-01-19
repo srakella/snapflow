@@ -650,6 +650,7 @@ function StartProcessModal({ isOpen, onClose, definition, onSuccess }: { isOpen:
     const [isLoadingForm, setIsLoadingForm] = useState(false);
     const [status, setStatus] = useState<'idle' | 'starting' | 'success' | 'error'>('idle');
     const [message, setMessage] = useState('');
+    const [showAdvanced, setShowAdvanced] = useState(false);
 
     useEffect(() => {
         if (isOpen && definition?.startFormKey) {
@@ -741,7 +742,7 @@ function StartProcessModal({ isOpen, onClose, definition, onSuccess }: { isOpen:
                                 <div className="bg-blue-50 border border-blue-100 p-3 rounded-sm text-xs text-blue-800 font-bold mb-4">
                                     Using Form: {formDefinition.name}
                                 </div>
-                                {formDefinition.schema.map((field: any) => (
+                                {formDefinition.schema.filter((field: any) => field.showOnStart).map((field: any) => (
                                     <div key={field.id}>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1 tracking-wide">{field.label}</label>
 
@@ -806,15 +807,33 @@ function StartProcessModal({ isOpen, onClose, definition, onSuccess }: { isOpen:
                             </div>
                         ) : (
                             <div>
-                                <label className="block text-xs font-bold text-gray-700 uppercase mb-1 tracking-wide">Input Variables (JSON)</label>
-                                <textarea
-                                    value={variables}
-                                    onChange={(e) => setVariables(e.target.value)}
-                                    className="w-full h-32 px-4 py-3 border border-gray-300 rounded-sm text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#D41C2C] focus:border-[#D41C2C] bg-gray-50"
-                                />
-                                <p className="text-[10px] text-gray-500 mt-1">
-                                    No form attached. Provided raw JSON variables.
-                                </p>
+                                <div className="bg-gray-50 border border-gray-200 rounded-sm p-4 text-center mb-4">
+                                    <h4 className="text-sm font-bold text-gray-700 mb-1">Ready to Start</h4>
+                                    <p className="text-xs text-gray-500">This workflow does not require any initial data.</p>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowAdvanced(!showAdvanced)}
+                                    className="text-[10px] font-bold text-gray-400 uppercase tracking-wider hover:text-gray-600 flex items-center gap-1 mb-2"
+                                >
+                                    <SlidersHorizontal size={12} />
+                                    {showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}
+                                </button>
+
+                                {showAdvanced && (
+                                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1 tracking-wide">Initial Variables (JSON)</label>
+                                        <textarea
+                                            value={variables}
+                                            onChange={(e) => setVariables(e.target.value)}
+                                            className="w-full h-32 px-4 py-3 border border-gray-300 rounded-sm text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#D41C2C] focus:border-[#D41C2C] bg-gray-50"
+                                            placeholder='{ "key": "value" }'
+                                        />
+                                        <p className="text-[10px] text-gray-500 mt-1">
+                                            Optional: Provide raw JSON variables to initialize the process instance.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

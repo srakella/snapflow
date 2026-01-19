@@ -39,3 +39,10 @@ stop-snapflow.sh
 status-snapflow.sh
 logs/
 *.pid
+
+# Documentation - Ignore all .md files except essential ones
+*.md
+!README.md
+!LICENSE.md
+!CONTRIBUTING.md
+!CLA.md
