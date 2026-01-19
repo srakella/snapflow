@@ -14,7 +14,7 @@ import {
     NodeTypes,
     MarkerType,
 } from '@xyflow/react';
-import { Rocket, LayoutGrid, Home, FileText, FilePlus } from 'lucide-react';
+import { Rocket, LayoutGrid, Home, FileText, FilePlus, MessageSquare, Save } from 'lucide-react';
 import Link from 'next/link';
 import '@xyflow/react/dist/style.css';
 
@@ -37,6 +37,7 @@ import { UserTaskNode } from './nodes/UserTaskNode';
 import { ServiceTaskNode } from './nodes/ServiceTaskNode';
 import { RulesEngineNode } from './nodes/RulesEngineNode';
 import { DynamicRouterNode } from './nodes/DynamicRouterNode';
+import CommentsPanel from './CommentsPanel';
 
 const nodeTypes: NodeTypes = {
     start: StartNode as any,
@@ -81,6 +82,7 @@ function Flow() {
         setSelectedEdge,
         setNodes,
         setEdges,
+        selectedNode, // Get selected node from store
     } = useStore();
 
     // Handler for creating a new process
@@ -142,6 +144,7 @@ function Flow() {
 
 
     const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
+    const [isCommentsOpen, setIsCommentsOpen] = React.useState(false);
 
     const handleDeploy = async (name: string) => {
         const flowObject = toObject();
@@ -206,6 +209,15 @@ function Flow() {
                         <div className="h-8 w-[1px] bg-gray-200" />
 
                         <div className="flex gap-2">
+                            <Link
+                                href="/dashboard"
+                                className="flex items-center gap-2 bg-white text-gray-700 px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:bg-gray-50 hover:shadow-md transition-all active:scale-95 border border-gray-200 uppercase tracking-wide"
+                                title="Exit to Dashboard"
+                            >
+                                <Home size={16} />
+                                Exit
+                            </Link>
+                            <div className="h-4 w-[1px] bg-gray-200" />
                             <button
                                 onClick={handleNewProcess}
                                 className="flex items-center gap-2 bg-white text-gray-700 px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:bg-gray-50 hover:shadow-md transition-all active:scale-95 border border-gray-200 uppercase tracking-wide"
@@ -227,8 +239,22 @@ function Flow() {
                                 onClick={() => setIsSaveModalOpen(true)}
                                 className="flex items-center gap-2 bg-[#D41C2C] text-white px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:bg-[#B81926] hover:shadow-md transition-all active:scale-95 group uppercase tracking-wide"
                             >
-                                <Rocket size={16} className="group-hover:animate-bounce" />
-                                Save & Launch
+                                <Save size={16} />
+                                Save
+                            </button>
+
+                            <div className="h-8 w-[1px] bg-gray-200 mx-2" />
+
+                            <button
+                                onClick={() => setIsCommentsOpen(!isCommentsOpen)}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-sm font-bold shadow-sm transition-all border uppercase tracking-wide ${isCommentsOpen
+                                    ? 'bg-slate-800 text-white border-slate-900'
+                                    : 'bg-white text-slate-600 border-gray-200 hover:bg-slate-50'
+                                    }`}
+                                title="Toggle Comments"
+                            >
+                                <MessageSquare size={16} />
+                                Comments
                             </button>
                         </div>
                     </Panel>
@@ -239,6 +265,15 @@ function Flow() {
                     onClose={() => setIsSaveModalOpen(false)}
                     onSave={handleDeploy}
                 />
+
+                {/* Comments Panel Overlay */}
+                {isCommentsOpen && (
+                    <CommentsPanel
+                        workflowId="draft-workflow-id" // TODO: Connect to actual workflow ID from store/context
+                        selectedNodeId={selectedNode ? selectedNode.id : null}
+                        onClose={() => setIsCommentsOpen(false)}
+                    />
+                )}
             </div >
 
             <PropertiesSidebar />

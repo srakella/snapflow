@@ -3,28 +3,31 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, FileText, Settings2, Activity, Rocket, Home, Briefcase } from 'lucide-react';
+import { LayoutGrid, FileText, Settings2, Activity, Rocket, Home, Briefcase, LogOut } from 'lucide-react';
+import { useAuth } from './AuthContext';
 
 export function TopNavigation() {
     const pathname = usePathname();
+    const { user, logout, hasRole } = useAuth();
 
     const isActive = (path: string) => {
-        // Exact match for Home ('/')
         if (path === '/' && pathname === '/') return true;
-        // Exact match for Designer ('/designer') to avoid partial match issues if we had /designer-v2
         if (path === '/designer' && pathname === '/designer') return true;
-        // Prefix match for nested routes (e.g. /rules/id, /forms/designer)
         if (path !== '/' && pathname?.startsWith(path)) return true;
         return false;
     };
 
+    // If on login page, hide nav or show simplified?
+    // Let's hide nav items if not logged in
+    if (!user) return null;
+
     const navItems = [
-        { path: '/', label: 'Home', icon: <Home size={18} /> },
-        { path: '/designer', label: 'Designer', icon: <LayoutGrid size={18} /> },
-        { path: '/rules', label: 'Rules', icon: <Settings2 size={18} /> },
-        { path: '/forms/designer', label: 'Forms', icon: <FileText size={18} /> },
-        { path: '/tasks', label: 'Tasks', icon: <Briefcase size={18} /> },
-        { path: '/dashboard', label: 'Monitor', icon: <Activity size={18} /> },
+        { path: '/', label: 'Home', icon: <Home size={18} />, allowed: true },
+        { path: '/designer', label: 'Designer', icon: <LayoutGrid size={18} />, allowed: hasRole('DESIGNER') },
+        { path: '/rules', label: 'Rules', icon: <Settings2 size={18} />, allowed: hasRole('DESIGNER') },
+        { path: '/forms/designer', label: 'Forms', icon: <FileText size={18} />, allowed: hasRole('DESIGNER') },
+        { path: '/tasks', label: 'Tasks', icon: <Briefcase size={18} />, allowed: hasRole('USER') || hasRole('DESIGNER') },
+        { path: '/dashboard', label: 'Monitor', icon: <Activity size={18} />, allowed: hasRole('USER') || hasRole('ADMIN') },
     ];
 
     return (
@@ -39,7 +42,7 @@ export function TopNavigation() {
 
             {/* Navigation Links */}
             <div className="flex items-center gap-1">
-                {navItems.map((item) => (
+                {navItems.filter(item => item.allowed).map((item) => (
                     <Link
                         key={item.path}
                         href={item.path}
@@ -59,9 +62,15 @@ export function TopNavigation() {
 
             {/* User Profile / Actions */}
             <div className="flex items-center gap-3">
-                <button className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs font-medium text-gray-700">
-                    JD
+                <button
+                    onClick={logout}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-[#D41C2C] hover:bg-red-50 rounded transition-all uppercase"
+                >
+                    <LogOut size={14} /> Logout
                 </button>
+                <div className="w-8 h-8 rounded-full bg-[#D41C2C] text-white flex items-center justify-center text-xs font-bold shadow-sm ring-2 ring-white cursor-help" title={user.fullName}>
+                    {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+                </div>
             </div>
         </nav>
     );

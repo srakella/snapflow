@@ -34,6 +34,7 @@ export function DataTab({ node, onUpdate, forms, formsLoading }: DataTabProps) {
                     {/* User Task Data Config */}
                     {isUserTask && (
                         <UserTaskData
+                            nodeId={node.id}
                             config={node.data.config}
                             onUpdate={updateConfig}
                             forms={forms}

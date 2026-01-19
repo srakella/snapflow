@@ -20,10 +20,11 @@ import {
     horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useSearchParams } from 'next/navigation';
 import {
     Save, Home, Layout, Eye, FileText, X, Trash2, GripVertical, FolderOpen,
     Type, Hash, Calendar, Mail, Phone, List, CheckSquare, AlignLeft, Settings2, Plus,
-    User, Paperclip, PenTool, Sparkles, Filter, Shield, Activity
+    User, Paperclip, PenTool, Sparkles, Filter, Shield, Activity, Database, Copy
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -207,6 +208,129 @@ export default function EnterpriseFormDesigner() {
     const [showLoadModal, setShowLoadModal] = useState(false);
     const [savedForms, setSavedForms] = useState<any[]>([]);
 
+    // Workflow Context
+    const searchParams = useSearchParams();
+    const [upstreamVariables, setUpstreamVariables] = useState<any[]>([]);
+    const [isLoadingContext, setIsLoadingContext] = useState(false);
+
+    // Load Context and Form on Mount
+    const handleLoadForm = (form: any) => {
+        setFormName(form.name);
+
+        let loadedRows: FormRow[] = [];
+        if (Array.isArray(form.schema)) {
+            // Check if items are rows (have 'fields' prop) or fields (have 'type' prop)
+            // If empty, default to empty rows
+            if (form.schema.length === 0) {
+                loadedRows = [];
+            } else {
+                const firstItem = form.schema[0];
+                if (firstItem && typeof firstItem === 'object' && 'fields' in firstItem) {
+                    // It's rows
+                    loadedRows = form.schema as FormRow[];
+                } else {
+                    // It's a flat list of fields (from curl), wrap in single row
+                    // Generate IDs for fields if missing? The curled fields have IDs.
+                    loadedRows = [{ id: 'row_imported', fields: form.schema as FormField[] }];
+                }
+            }
+        }
+
+        setRows(loadedRows);
+        setShowLoadModal(false);
+    };
+
+    // Load Context and Form on Mount
+    React.useEffect(() => {
+        const contextParam = searchParams.get('context');
+        const formIdParam = searchParams.get('formId');
+
+        if (contextParam) {
+            setIsLoadingContext(true);
+            try {
+                const context = JSON.parse(decodeURIComponent(contextParam));
+                fetchUpstreamDetails(context.upstream);
+            } catch (e) {
+                console.error("Failed to parse workflow context", e);
+                setIsLoadingContext(false);
+            }
+        }
+
+        if (formIdParam) {
+            fetch(`http://localhost:8081/api/forms/${formIdParam}`)
+                .then(res => res.json())
+                .then(data => {
+                    handleLoadForm(data);
+                })
+                .catch(err => alert("Failed to load requested form"));
+        }
+    }, [searchParams]);
+
+    const fetchUpstreamDetails = async (nodes: any[]) => {
+        const variables: any[] = [];
+        const processedForms = new Set<string>();
+
+        for (const node of nodes) {
+            if (!processedForms.has(node.formKey)) {
+                try {
+                    const res = await fetch(`http://localhost:8081/api/forms/${node.formKey}`);
+                    if (res.ok) {
+                        const formData = await res.json();
+                        const schema = formData.schema;
+                        let fields: any[] = [];
+
+                        if (Array.isArray(schema)) {
+                            if (schema.length > 0 && 'fields' in schema[0]) {
+                                fields = schema.flatMap((r: any) => r.fields);
+                            } else {
+                                fields = schema;
+                            }
+                        }
+
+                        fields.forEach((f: any) => {
+                            if (f.key && f.label) {
+                                variables.push({
+                                    sourceNodeId: node.id,
+                                    sourceNodeLabel: node.label || 'Unknown Step',
+                                    key: f.key,
+                                    label: f.label,
+                                    type: f.type
+                                });
+                            }
+                        });
+                    }
+                } catch (e) { console.error(`Failed to fetch form ${node.formKey}`, e); }
+                processedForms.add(node.formKey);
+            }
+        }
+        setUpstreamVariables(variables);
+        setIsLoadingContext(false);
+    };
+
+    const addReadOnlyField = (variable: any) => {
+        const newField: FormField = {
+            id: `field_${Date.now()}`,
+            type: 'text',
+            label: variable.label,
+            key: variable.key,
+            width: 2,
+            validation: { required: false },
+            logic: { disabled: 'true' },
+            data: { dataSource: 'static' },
+            helpText: `Value from ${variable.sourceNodeLabel}`,
+            placeholder: `Value of ${variable.key}`
+        };
+
+        if (rows.length === 0) {
+            setRows([{ id: `row_${Date.now()}`, fields: [newField] }]);
+        } else {
+            const lastRow = rows[rows.length - 1];
+            setRows(rows.map(r => r.id === lastRow.id ? { ...r, fields: [...r.fields, newField] } : r));
+        }
+        setSelectedField(newField);
+        setSettingsTab('general');
+    };
+
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
     // --- Actions ---
@@ -345,31 +469,7 @@ export default function EnterpriseFormDesigner() {
         }
     };
 
-    const handleLoadForm = (form: any) => {
-        setFormName(form.name);
 
-        let loadedRows: FormRow[] = [];
-        if (Array.isArray(form.schema)) {
-            // Check if items are rows (have 'fields' prop) or fields (have 'type' prop)
-            // If empty, default to empty rows
-            if (form.schema.length === 0) {
-                loadedRows = [];
-            } else {
-                const firstItem = form.schema[0];
-                if (firstItem && typeof firstItem === 'object' && 'fields' in firstItem) {
-                    // It's rows
-                    loadedRows = form.schema as FormRow[];
-                } else {
-                    // It's a flat list of fields (from curl), wrap in single row
-                    // Generate IDs for fields if missing? The curled fields have IDs.
-                    loadedRows = [{ id: 'row_imported', fields: form.schema as FormField[] }];
-                }
-            }
-        }
-
-        setRows(loadedRows);
-        setShowLoadModal(false);
-    };
 
     const handleAIGenerate = () => {
         const userPrompt = prompt("✨ Describe the form you want to create:\n(e.g., 'Expense report with receipt upload and supervisor approval')");
@@ -441,6 +541,41 @@ export default function EnterpriseFormDesigner() {
 
             {/* Main */}
             <main className="flex-1 flex overflow-hidden">
+                {/* Left Sidebar: Workflow Variables */}
+                {upstreamVariables.length > 0 && (
+                    <aside className="w-64 bg-slate-50 border-r border-slate-200 flex-shrink-0 flex flex-col overflow-hidden animate-in slide-in-from-left duration-300">
+                        <div className="p-4 border-b border-slate-200 bg-white">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                <Database size={16} className="text-blue-600" /> Workflow Data
+                            </h3>
+                            <p className="text-[10px] text-slate-500 mt-1">Variables from previous steps available for this form.</p>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                            {isLoadingContext ? (
+                                <div className="text-center p-4 text-slate-400 text-xs">Loading context...</div>
+                            ) : (
+                                upstreamVariables.map((v, i) => (
+                                    <div key={i} className="bg-white border border-slate-200 rounded-md p-3 shadow-sm hover:border-blue-300 transition-colors group">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{v.sourceNodeLabel}</span>
+                                            <span className="text-[10px] font-mono text-slate-300 bg-slate-100 px-1 rounded">{v.type}</span>
+                                        </div>
+                                        <div className="font-bold text-slate-700 text-sm mb-1">{v.label}</div>
+                                        <code className="text-[10px] text-slate-500 bg-slate-50 px-1 py-0.5 rounded block mb-2 font-mono truncate">{v.key}</code>
+
+                                        <button
+                                            onClick={() => addReadOnlyField(v)}
+                                            className="w-full flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold py-1.5 rounded hover:bg-blue-100 active:scale-95 transition-all uppercase"
+                                        >
+                                            <Plus size={12} /> Add as Read-Only
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </aside>
+                )}
+
                 {/* Canvas */}
                 <div className="flex-1 overflow-y-auto">
                     <div className="p-6 max-w-7xl mx-auto">

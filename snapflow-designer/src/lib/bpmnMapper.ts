@@ -33,10 +33,25 @@ export function mapToBPMN(nodes: AppNode[], edges: Edge[], processName: string =
                 xml += `        <endEvent id="${id}" name="${name}" />\n`;
                 break;
             case 'task':
+            case 'userTask':
                 const assignee = (node.data as any).config?.assignee ? ` flowable:assignee="${(node.data as any).config.assignee}"` : '';
                 const formKey = (node.data as any).config?.formKey ? ` flowable:formKey="${(node.data as any).config.formKey}"` : '';
                 const isReview = (node.data as any).config?.viewPreviousData ? ` flowable:isReviewStep="true"` : '';
                 xml += `        <userTask id="${id}" name="${name}"${assignee}${formKey}${isReview} />\n`;
+                break;
+            case 'serviceTask':
+                const method = (node.data as any).config?.method || 'GET';
+                const url = (node.data as any).config?.url || '';
+                xml += `        <serviceTask id="${id}" name="${name}" flowable:type="http">\n`;
+                xml += `            <extensionElements>\n`;
+                xml += `                <flowable:field name="requestMethod">\n`;
+                xml += `                    <flowable:string><![CDATA[${method}]]></flowable:string>\n`;
+                xml += `                </flowable:field>\n`;
+                xml += `                <flowable:field name="requestUrl">\n`;
+                xml += `                    <flowable:string><![CDATA[${url}]]></flowable:string>\n`;
+                xml += `                </flowable:field>\n`;
+                xml += `            </extensionElements>\n`;
+                xml += `        </serviceTask>\n`;
                 break;
             case 'aiAgent':
                 const aiConfig = (node.data as any).config || {};

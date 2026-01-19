@@ -5,14 +5,62 @@ import { FormSelector } from '../shared/FormSelector';
 import { FormDefinition } from '@/services/formService';
 import { CANDIDATE_GROUPS } from '@/constants/users';
 
+import { useStore, AppNode } from '@/store/useStore';
+
 interface UserTaskDataProps {
+    nodeId: string;
     config: any;
     onUpdate: (config: any) => void;
     forms: FormDefinition[];
     formsLoading: boolean;
 }
 
-export function UserTaskData({ config, onUpdate, forms, formsLoading }: UserTaskDataProps) {
+export function UserTaskData({ nodeId, config, onUpdate, forms, formsLoading }: UserTaskDataProps) {
+    const { nodes, edges } = useStore();
+
+    const getWorkflowContext = () => {
+        // Find upstream nodes
+        const visited = new Set<string>();
+        const upstreamNodes: any[] = [];
+        const queue = [nodeId];
+
+        // BFS backwards
+        while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            if (visited.has(currentId)) continue;
+            visited.add(currentId);
+
+            // Find incoming edges
+            const incomingEdges = edges.filter(e => e.target === currentId);
+            incomingEdges.forEach(edge => {
+                const sourceNode = nodes.find(n => n.id === edge.source);
+                if (sourceNode && !visited.has(sourceNode.id)) {
+                    if (sourceNode.data.config?.formKey) {
+                        upstreamNodes.push({
+                            id: sourceNode.id,
+                            label: sourceNode.data.label,
+                            formKey: sourceNode.data.config.formKey
+                        });
+                    }
+                    queue.push(sourceNode.id);
+                }
+            });
+        }
+        return { upstream: upstreamNodes };
+    };
+
+    const handleCreateForm = () => {
+        const context = getWorkflowContext();
+        const encodedContext = encodeURIComponent(JSON.stringify(context));
+        window.open(`/forms/designer?context=${encodedContext}`, '_blank');
+    };
+
+    const handleEditForm = (formId: string) => {
+        const context = getWorkflowContext();
+        const encodedContext = encodeURIComponent(JSON.stringify(context));
+        window.open(`/forms/designer?context=${encodedContext}&formId=${formId}`, '_blank');
+    };
+
     return (
         <>
             <div className="space-y-3">
@@ -70,7 +118,8 @@ export function UserTaskData({ config, onUpdate, forms, formsLoading }: UserTask
                         formKey: formId,
                     })
                 }
-                onCreateNew={() => window.open('/forms/designer', '_blank')}
+                onCreateNew={handleCreateForm}
+                onEdit={handleEditForm}
             />
         </>
     );

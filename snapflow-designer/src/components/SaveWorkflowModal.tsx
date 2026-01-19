@@ -17,10 +17,10 @@ export function SaveWorkflowModal({ isOpen, onClose, onSave }: SaveWorkflowModal
 
     const handleSave = async () => {
         setStatus('saving');
-        setLogs(prev => [...prev, 'Starting deployment...']);
+        setLogs(prev => [...prev, 'Saving workflow...']);
         try {
             const result = await onSave(name);
-            setLogs(prev => [...prev, '✔ Backend persisted JSON state', `✔ Deployed to Engine (ID: ${result.id})`]);
+            setLogs(prev => [...prev, '✔ Backend persisted JSON state', `✔ Saved (ID: ${result.id})`]);
             setStatus('success');
             setTimeout(() => {
                 onClose();
@@ -38,8 +38,8 @@ export function SaveWorkflowModal({ isOpen, onClose, onSave }: SaveWorkflowModal
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-md shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border-t-4 border-[#D41C2C]">
                 <div className="p-6">
-                    <h2 className="text-xl font-bold text-[#D41C2C] mb-1 font-serif">Save & Launch</h2>
-                    <p className="text-sm text-gray-600 mb-6 font-sans">Name your workflow to persist it to the database and deploy it to the engine.</p>
+                    <h2 className="text-xl font-bold text-[#D41C2C] mb-1 font-serif">Save Workflow</h2>
+                    <p className="text-sm text-gray-600 mb-6 font-sans">Name your workflow to persist it.</p>
 
                     <div className="space-y-4">
                         <div>
@@ -77,7 +77,7 @@ export function SaveWorkflowModal({ isOpen, onClose, onSave }: SaveWorkflowModal
                             {status === 'saving' && (
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             )}
-                            {status === 'success' ? 'Deployed!' : 'Save & Launch'}
+                            {status === 'success' ? 'Saved!' : 'Save'}
                         </button>
                     </div>
                 </div>
