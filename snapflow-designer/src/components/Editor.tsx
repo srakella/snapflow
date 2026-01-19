@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import {
     ReactFlow,
     Background,
@@ -81,6 +81,14 @@ function Flow() {
         setNodes,
         setEdges,
     } = useStore();
+
+    // Clear state on mount to ensure fresh designer
+    useEffect(() => {
+        setNodes([]);
+        setEdges([]);
+        setSelectedNode(null);
+        setSelectedEdge(null);
+    }, [setNodes, setEdges, setSelectedNode, setSelectedEdge]);
 
     const { screenToFlowPosition, toObject } = useReactFlow();
 
