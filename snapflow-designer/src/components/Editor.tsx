@@ -14,7 +14,7 @@ import {
     NodeTypes,
     MarkerType,
 } from '@xyflow/react';
-import { Rocket, LayoutGrid, Home, FileText } from 'lucide-react';
+import { Rocket, LayoutGrid, Home, FileText, FilePlus } from 'lucide-react';
 import Link from 'next/link';
 import '@xyflow/react/dist/style.css';
 
@@ -28,10 +28,11 @@ import { EndNode } from './nodes/EndNode';
 import { EmailNode } from './nodes/EmailNode';
 import { TimerNode } from './nodes/TimerNode';
 import { SidePalette } from './SidePalette';
-import { PropertiesSidebar } from './PropertiesSidebar';
+import { PropertiesSidebar } from './PropertiesSidebarNew';
 
 import { LoadWorkflowButton } from './LoadWorkflowButton';
 import { SaveWorkflowModal } from './SaveWorkflowModal';
+import { workflowService } from '../services/workflowService';
 import { UserTaskNode } from './nodes/UserTaskNode';
 import { ServiceTaskNode } from './nodes/ServiceTaskNode';
 import { RulesEngineNode } from './nodes/RulesEngineNode';
@@ -82,13 +83,17 @@ function Flow() {
         setEdges,
     } = useStore();
 
-    // Clear state on mount to ensure fresh designer
-    useEffect(() => {
+    // Handler for creating a new process
+    const handleNewProcess = useCallback(() => {
+        if (nodes.length > 0 || edges.length > 0) {
+            const confirmed = window.confirm('Are you sure you want to start a new process? Any unsaved changes will be lost.');
+            if (!confirmed) return;
+        }
         setNodes([]);
         setEdges([]);
         setSelectedNode(null);
         setSelectedEdge(null);
-    }, [setNodes, setEdges, setSelectedNode, setSelectedEdge]);
+    }, [nodes.length, edges.length, setNodes, setEdges, setSelectedNode, setSelectedEdge]);
 
     const { screenToFlowPosition, toObject } = useReactFlow();
 
@@ -144,21 +149,16 @@ function Flow() {
 
         console.log('Dual-Save: Saving JSON + XML...');
 
-        const response = await fetch('http://localhost:8081/api/workflows/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: name,
+        try {
+            const savedDoc = await workflowService.save({
+                name,
                 json: flowObject,
-                xml: xml
-            }),
-        });
-
-        if (response.ok) {
-            return await response.json();
-        } else {
-            const errorData = await response.text();
-            throw new Error(errorData || 'Save failed');
+                xml,
+            });
+            return savedDoc;
+        } catch (error) {
+            console.error('Save failed:', error);
+            throw error;
         }
     };
 
@@ -180,7 +180,6 @@ function Flow() {
                     onPaneClick={onPaneClick}
                     nodeTypes={nodeTypes}
                     defaultEdgeOptions={defaultEdgeOptions}
-                    fitView
                     snapToGrid={true}
                     snapGrid={[15, 15]}
                     connectionRadius={30}
@@ -191,7 +190,7 @@ function Flow() {
                     }}
                     minZoom={0.2}
                     maxZoom={4}
-                    defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+                    defaultViewport={{ x: 250, y: 100, zoom: 0.8 }}
                     proOptions={{ hideAttribution: true }}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
@@ -207,6 +206,15 @@ function Flow() {
                         <div className="h-8 w-[1px] bg-gray-200" />
 
                         <div className="flex gap-2">
+                            <button
+                                onClick={handleNewProcess}
+                                className="flex items-center gap-2 bg-white text-gray-700 px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:bg-gray-50 hover:shadow-md transition-all active:scale-95 border border-gray-200 uppercase tracking-wide"
+                                title="Start a new process"
+                            >
+                                <FilePlus size={16} />
+                                New
+                            </button>
+
                             <LoadWorkflowButton
                                 onLoad={(json: any) => {
                                     const { x, y, zoom } = json.viewport;

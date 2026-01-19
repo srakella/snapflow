@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,5 +62,13 @@ public class WorkflowService {
 
     public Optional<ProcessDocument> getWorkflow(String id) {
         return processDocumentRepository.findById(id);
+    }
+
+    /**
+     * Delete a workflow by ID
+     */
+    @Transactional
+    public void deleteWorkflow(String id) {
+        processDocumentRepository.deleteById(id);
     }
 }

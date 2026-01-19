@@ -8,29 +8,33 @@ export default function DashboardPage() {
     const [deployments, setDeployments] = useState<any[]>([]);
     const [instances, setInstances] = useState<any[]>([]);
     const [tasks, setTasks] = useState<any[]>([]);
+    const [history, setHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isStartModalOpen, setIsStartModalOpen] = useState(false);
     const [selectedDefinition, setSelectedDefinition] = useState<any>(null);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'deployments' | 'instances' | 'tasks' | 'admin'>('deployments');
+    const [activeTab, setActiveTab] = useState<'deployments' | 'instances' | 'tasks' | 'history' | 'admin'>('deployments');
 
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [defsRes, instsRes, tasksRes] = await Promise.all([
+            const [defsRes, instsRes, tasksRes, historyRes] = await Promise.all([
                 fetch('http://localhost:8081/api/runtime/definitions'),
                 fetch('http://localhost:8081/api/runtime/instances'),
-                fetch('http://localhost:8081/api/runtime/tasks')
+                fetch('http://localhost:8081/api/runtime/tasks'),
+                fetch('http://localhost:8081/api/audit/instances')
             ]);
 
             const defs = await defsRes.json();
             const insts = await instsRes.json();
             const tasksData = await tasksRes.json();
+            const historyData = historyRes.ok ? await historyRes.json() : [];
 
             setDeployments(defs);
             setInstances(insts);
             setTasks(tasksData);
+            setHistory(historyData);
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
         } finally {
@@ -74,9 +78,9 @@ export default function DashboardPage() {
 
             <main className="max-w-7xl mx-auto p-8">
                 {/* Tabs */}
-                <div className="flex border-b border-gray-200 mb-6">
+                <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
                     <button
-                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'deployments'
+                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${activeTab === 'deployments'
                             ? 'border-[#D41C2C] text-[#D41C2C]'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
@@ -85,7 +89,7 @@ export default function DashboardPage() {
                         Deployed Workflows
                     </button>
                     <button
-                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'instances'
+                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${activeTab === 'instances'
                             ? 'border-[#FCCF0A] text-gray-800'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
@@ -93,9 +97,28 @@ export default function DashboardPage() {
                     >
                         Active Instances
                     </button>
+                    <button
+                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${activeTab === 'tasks'
+                            ? 'border-blue-600 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                        onClick={() => setActiveTab('tasks')}
+                    >
+                        My Tasks
+                        {tasks.length > 0 && <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">{tasks.length}</span>}
+                    </button>
+                    <button
+                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${activeTab === 'history'
+                            ? 'border-purple-600 text-purple-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                        onClick={() => setActiveTab('history')}
+                    >
+                        History / Audits
+                    </button>
 
                     <button
-                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'admin'
+                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${activeTab === 'admin'
                             ? 'border-red-600 text-red-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
@@ -200,6 +223,94 @@ export default function DashboardPage() {
                 )}
 
 
+
+                {/* Tasks Content */}
+                {activeTab === 'tasks' && (
+                    <section className="bg-white rounded-sm shadow-md border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
+                                <ClipboardList size={20} className="text-blue-600" />
+                                My Tasks
+                            </h2>
+                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{tasks.length}</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-100 text-gray-500 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th className="px-6 py-3">Task Name</th>
+                                        <th className="px-6 py-3">Created</th>
+                                        <th className="px-6 py-3">Assignee</th>
+                                        <th className="px-6 py-3 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {isLoading && tasks.length === 0 ? (
+                                        <tr><td colSpan={4} className="p-4 text-center text-gray-400">Loading tasks...</td></tr>
+                                    ) : tasks.length === 0 ? (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-400 italic">No tasks assigned to you.</td></tr>
+                                    ) : tasks.map((task) => (
+                                        <tr key={task.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 font-medium text-gray-800">{task.name}</td>
+                                            <td className="px-6 py-4 text-gray-600 text-xs">{new Date(task.createTime).toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-gray-600 font-mono text-xs">{task.assignee || 'Unassigned'}</td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => openTaskModal(task)}
+                                                    className="inline-flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wide hover:bg-blue-700 transition-colors shadow-sm"
+                                                >
+                                                    <PenTool size={12} fill="currentColor" /> Complete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                )}
+
+                {/* History Content */}
+                {activeTab === 'history' && (
+                    <section className="bg-white rounded-sm shadow-md border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
+                                <Activity size={20} className="text-purple-600" />
+                                Process History
+                            </h2>
+                            <span className="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-1 rounded-full">{history.length}</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-100 text-gray-500 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th className="px-6 py-3">Process</th>
+                                        <th className="px-6 py-3">Start Time</th>
+                                        <th className="px-6 py-3">End Time</th>
+                                        <th className="px-6 py-3">Duration (ms)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {isLoading && history.length === 0 ? (
+                                        <tr><td colSpan={4} className="p-4 text-center text-gray-400">Loading history...</td></tr>
+                                    ) : history.length === 0 ? (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-400 italic">No history available.</td></tr>
+                                    ) : history.map((h) => (
+                                        <tr key={h.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="font-medium text-gray-800">{h.processDefinitionKey}</div>
+                                                <div className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {h.id}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600 text-xs">{new Date(h.startTime).toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-gray-600 text-xs">{h.endTime ? new Date(h.endTime).toLocaleString() : '-'}</td>
+                                            <td className="px-6 py-4 text-gray-600 font-mono text-xs">{h.durationInMillis || '-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                )}
 
                 {activeTab === 'admin' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -594,8 +705,27 @@ function TaskModal({ isOpen, onClose, task, onSuccess }: { isOpen: boolean; onCl
                                 )}
                             </div>
                         ) : (
-                            <div className="text-center text-gray-500 italic py-8">
-                                No form attached to this task. Just complete it.
+                            <div>
+                                <div className="text-center text-gray-500 italic py-4">
+                                    No form attached to this task.
+                                </div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase mb-1 tracking-wide">Output Variables (JSON)</label>
+                                <textarea
+                                    className="w-full h-32 px-4 py-3 border border-gray-300 rounded-sm text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600 bg-gray-50"
+                                    placeholder='{ "approved": true }'
+                                    onChange={(e) => {
+                                        try {
+                                            const json = JSON.parse(e.target.value);
+                                            setFormData(json);
+                                            setMessage('');
+                                        } catch (err) {
+                                            // invalid json, ignore for now
+                                        }
+                                    }}
+                                />
+                                <p className="text-[10px] text-gray-500 mt-1">
+                                    Enter variables to submit with completion.
+                                </p>
                             </div>
                         )}
 
@@ -612,7 +742,7 @@ function TaskModal({ isOpen, onClose, task, onSuccess }: { isOpen: boolean; onCl
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

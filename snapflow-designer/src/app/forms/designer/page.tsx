@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-    Save, Home, Layout, Eye, FileText, X, Trash2, GripVertical,
+    Save, Home, Layout, Eye, FileText, X, Trash2, GripVertical, FolderOpen,
     Type, Hash, Calendar, Mail, Phone, List, CheckSquare, AlignLeft, Settings2, Plus,
     User, Paperclip, PenTool, Sparkles, Filter, Shield, Activity
 } from 'lucide-react';
@@ -204,6 +204,8 @@ export default function EnterpriseFormDesigner() {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [settingsTab, setSettingsTab] = useState<'general' | 'validation' | 'logic' | 'data'>('general');
     const [isAIGenerating, setIsAIGenerating] = useState(false);
+    const [showLoadModal, setShowLoadModal] = useState(false);
+    const [savedForms, setSavedForms] = useState<any[]>([]);
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -317,16 +319,56 @@ export default function EnterpriseFormDesigner() {
         if (!formName.trim()) { alert("Please name your form."); return; }
         setIsSaving(true);
         try {
-            const allFields = rows.flatMap(row => row.fields);
             const response = await fetch('http://localhost:8081/api/forms', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: formName, schema: { rows: rows } }) // Saving raw rows structure now for better reload
+                body: JSON.stringify({ name: formName, schema: rows })
             });
             if (response.ok) alert('✓ Form saved!');
             else alert('Failed to save');
         } catch (error) { alert('Error saving'); }
         finally { setIsSaving(false); }
+    };
+
+    const handleOpenLoadModal = async () => {
+        try {
+            const res = await fetch('http://localhost:8081/api/forms');
+            if (res.ok) {
+                const data = await res.json();
+                setSavedForms(data);
+                setShowLoadModal(true);
+            } else {
+                alert('Failed to fetch forms');
+            }
+        } catch (e) {
+            alert('Error fetching forms');
+        }
+    };
+
+    const handleLoadForm = (form: any) => {
+        setFormName(form.name);
+
+        let loadedRows: FormRow[] = [];
+        if (Array.isArray(form.schema)) {
+            // Check if items are rows (have 'fields' prop) or fields (have 'type' prop)
+            // If empty, default to empty rows
+            if (form.schema.length === 0) {
+                loadedRows = [];
+            } else {
+                const firstItem = form.schema[0];
+                if (firstItem && typeof firstItem === 'object' && 'fields' in firstItem) {
+                    // It's rows
+                    loadedRows = form.schema as FormRow[];
+                } else {
+                    // It's a flat list of fields (from curl), wrap in single row
+                    // Generate IDs for fields if missing? The curled fields have IDs.
+                    loadedRows = [{ id: 'row_imported', fields: form.schema as FormField[] }];
+                }
+            }
+        }
+
+        setRows(loadedRows);
+        setShowLoadModal(false);
     };
 
     const handleAIGenerate = () => {
@@ -379,6 +421,9 @@ export default function EnterpriseFormDesigner() {
                         <div className="flex items-center gap-2">
                             <button onClick={handleAIGenerate} className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-sm text-xs font-bold hover:bg-indigo-100 hover:shadow-md transition-all uppercase mr-2">
                                 <Sparkles size={14} className={isAIGenerating ? "animate-spin" : ""} /> {isAIGenerating ? 'Generating...' : 'AI Magic'}
+                            </button>
+                            <button onClick={handleOpenLoadModal} className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-sm text-xs font-bold hover:bg-slate-50 hover:text-[#D41C2C] uppercase transition-all">
+                                <FolderOpen size={14} /> Load
                             </button>
                             <button onClick={() => setPreviewMode(!previewMode)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-bold uppercase ${previewMode ? 'bg-[#D41C2C] text-white' : 'bg-gray-100 text-gray-700'}`}>
                                 <Eye size={14} /> {previewMode ? 'Edit' : 'Preview'}
@@ -661,6 +706,50 @@ export default function EnterpriseFormDesigner() {
                     </aside>
                 )}
             </main>
+
+            {/* Load Modal */}
+            {showLoadModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center">
+                    <div className="bg-white rounded-xl shadow-2xl w-[600px] max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                <FolderOpen size={20} className="text-[#D41C2C]" /> Open Form
+                            </h3>
+                            <button onClick={() => setShowLoadModal(false)} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
+                                <X size={20} className="text-gray-500" />
+                            </button>
+                        </div>
+                        <div className="p-4 overflow-y-auto flex-1">
+                            {savedForms.length === 0 ? (
+                                <div className="text-center py-10 text-gray-500">
+                                    <p>No forms saved yet.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-3">
+                                    {savedForms.map((form) => (
+                                        <button
+                                            key={form.id}
+                                            onClick={() => handleLoadForm(form)}
+                                            className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-[#D41C2C] hover:bg-red-50 text-left transition-all group"
+                                        >
+                                            <div className="bg-red-100 p-3 rounded-lg group-hover:bg-red-200 text-[#D41C2C]">
+                                                <Layout size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 group-hover:text-[#D41C2C]">{form.name}</h4>
+                                                <p className="text-xs text-gray-500 mt-1">ID: {form.id}</p>
+                                            </div>
+                                            <div className="ml-auto text-xs font-bold text-gray-400 group-hover:text-[#D41C2C] uppercase tracking-wider">
+                                                Open
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -178,11 +178,14 @@ public class RulesController {
                         return ResponseEntity.ok(response);
                     } catch (Exception e) {
                         logger.error("Error testing rule", e);
-                        return ResponseEntity.badRequest()
-                                .body(Map.of("error", e.getMessage()));
+                        Map<String, Object> errorMap = new HashMap<>();
+                        errorMap.put("error", e.getMessage());
+                        return ResponseEntity.badRequest().body(errorMap);
                     }
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> {
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     // Helper methods for testing (simplified versions)
