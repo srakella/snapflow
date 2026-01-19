@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Play, Activity, Package, Loader2, ClipboardList, Trash2, Ban, Home, PenTool, Search, ArrowUpDown, SlidersHorizontal, Eye, MessageCircle, Send } from 'lucide-react';
+import { Play, Activity, Package, Loader2, ClipboardList, Trash2, Ban, Home, PenTool, Search, ArrowUpDown, SlidersHorizontal, Eye, MessageCircle, Send, BookOpen, ToggleRight, CheckSquare, List, MousePointerClick } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -16,7 +16,7 @@ export default function DashboardPage() {
     const [isInstanceDetailsOpen, setIsInstanceDetailsOpen] = useState(false);
     const [selectedInstance, setSelectedInstance] = useState<any>(null);
     const [selectedTask, setSelectedTask] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'deployments' | 'instances' | 'tasks' | 'history' | 'admin'>('deployments');
+    const [activeTab, setActiveTab] = useState<'deployments' | 'instances' | 'tasks' | 'history' | 'admin' | 'help'>('deployments');
     const [adminSubTab, setAdminSubTab] = useState<'definitions' | 'instances' | 'users' | 'groups' | 'settings'>('definitions');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' as 'asc' | 'desc' });
@@ -127,16 +127,7 @@ export default function DashboardPage() {
                     >
                         Active Instances
                     </button>
-                    <button
-                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${activeTab === 'tasks'
-                            ? 'border-blue-600 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                        onClick={() => setActiveTab('tasks')}
-                    >
-                        My Tasks
-                        {tasks.length > 0 && <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">{tasks.length}</span>}
-                    </button>
+
                     <button
                         className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${activeTab === 'history'
                             ? 'border-purple-600 text-purple-600'
@@ -155,6 +146,15 @@ export default function DashboardPage() {
                         onClick={() => setActiveTab('admin')}
                     >
                         Admin
+                    </button>
+                    <button
+                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${activeTab === 'help'
+                            ? 'border-teal-600 text-teal-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                        onClick={() => setActiveTab('help')}
+                    >
+                        Help & Docs
                     </button>
                 </div>
 
@@ -286,51 +286,7 @@ export default function DashboardPage() {
 
 
 
-                {/* Tasks Content */}
-                {activeTab === 'tasks' && (
-                    <section className="bg-white rounded-sm shadow-md border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
-                                <ClipboardList size={20} className="text-blue-600" />
-                                My Tasks
-                            </h2>
-                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{tasks.length}</span>
-                        </div>
-                        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-100 text-gray-500 font-bold uppercase text-xs sticky top-0 z-10 shadow-sm">
-                                    <tr>
-                                        <th className="px-6 py-3">Task Name</th>
-                                        <th className="px-6 py-3">Created</th>
-                                        <th className="px-6 py-3">Assignee</th>
-                                        <th className="px-6 py-3 text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {isLoading && tasks.length === 0 ? (
-                                        <tr><td colSpan={4} className="p-4 text-center text-gray-400">Loading tasks...</td></tr>
-                                    ) : tasks.length === 0 ? (
-                                        <tr><td colSpan={4} className="p-8 text-center text-gray-400 italic">No tasks assigned to you.</td></tr>
-                                    ) : tasks.map((task) => (
-                                        <tr key={task.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-gray-800">{task.name}</td>
-                                            <td className="px-6 py-4 text-gray-600 text-xs">{new Date(task.createTime).toLocaleString()}</td>
-                                            <td className="px-6 py-4 text-gray-600 font-mono text-xs">{task.assignee || 'Unassigned'}</td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => openTaskModal(task)}
-                                                    className="inline-flex items-center gap-1 bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wide hover:bg-blue-50 transition-colors shadow-sm"
-                                                >
-                                                    <Eye size={12} /> View Task
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-                )}
+
 
                 {/* History Content */}
                 {activeTab === 'history' && (
@@ -509,6 +465,7 @@ export default function DashboardPage() {
                                 </section>
                             )}
 
+
                             {/* PLACEHOLDERS */}
                             {(adminSubTab === 'users' || adminSubTab === 'groups' || adminSubTab === 'settings') && (
                                 <div className="bg-white rounded-sm shadow-md border border-gray-200 p-12 text-center">
@@ -524,6 +481,128 @@ export default function DashboardPage() {
                                 </div>
                             )}
 
+                        </div>
+                    </div>
+                )}
+
+                {/* Help Content */}
+                {activeTab === 'help' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 grid grid-cols-12 gap-8">
+                        <div className="col-span-12 md:col-span-3">
+                            <div className="bg-white rounded-sm shadow-sm border border-gray-200 p-4 sticky top-4">
+                                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <BookOpen size={18} className="text-teal-600" />
+                                    Documentation
+                                </h3>
+                                <ul className="space-y-2 text-sm text-gray-600">
+                                    <li className="font-medium text-teal-700">Form Fields Guide</li>
+                                    <li>Workflow Designer</li>
+                                    <li>Process Monitoring</li>
+                                    <li>Admin Tools</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="col-span-12 md:col-span-9 space-y-8">
+                            <section className="bg-white rounded-sm shadow-md border border-teal-200 overflow-hidden">
+                                <div className="bg-teal-50 px-6 py-4 border-b border-teal-100">
+                                    <h2 className="text-lg font-bold text-teal-800">Form Fields Reference</h2>
+                                    <p className="text-xs text-teal-600 mt-1">Understanding the different input types available in the Form Designer.</p>
+                                </div>
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                    <div className="flex gap-4">
+                                        <div className="w-10 h-10 rounded bg-cyan-100 text-cyan-600 flex items-center justify-center flex-shrink-0">
+                                            <ToggleRight size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-800 text-sm">Switch (Toggle)</h4>
+                                            <p className="text-xs text-gray-500 mt-1 mb-2">
+                                                A binary control that allows users to switch between two mutually exclusive states, typically <strong>On/Off</strong> or <strong>Yes/No</strong>.
+                                            </p>
+                                            <div className="bg-gray-50 p-3 rounded border border-gray-100">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-4 bg-cyan-500 rounded-full relative">
+                                                        <div className="w-3 h-3 bg-white rounded-full absolute top-0.5 right-0.5" />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-cyan-700">Approved</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 mt-2 italic">Best for: Quick approvals, enable/disable features.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        <div className="w-10 h-10 rounded bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0">
+                                            <MousePointerClick size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-800 text-sm">Radio Buttons</h4>
+                                            <p className="text-xs text-gray-500 mt-1 mb-2">
+                                                Allows users to select exactly <strong>one</strong> option from a visible list. Good when you want all options exposed.
+                                            </p>
+                                            <div className="bg-gray-50 p-3 rounded border border-gray-100 space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full border-2 border-purple-500 flex items-center justify-center">
+                                                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+                                                    </div>
+                                                    <span className="text-xs text-gray-700">Option A</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 opacity-50">
+                                                    <div className="w-3 h-3 rounded-full border-2 border-gray-400" />
+                                                    <span className="text-xs text-gray-700">Option B</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        <div className="w-10 h-10 rounded bg-yellow-100 text-yellow-600 flex items-center justify-center flex-shrink-0">
+                                            <List size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-800 text-sm">Select Dictionary</h4>
+                                            <p className="text-xs text-gray-500 mt-1 mb-2">
+                                                A dropdown menu for selecting one option from a large list. Saves space compared to Radio buttons.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        <div className="w-10 h-10 rounded bg-teal-100 text-teal-600 flex items-center justify-center flex-shrink-0">
+                                            <CheckSquare size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-800 text-sm">Checkbox</h4>
+                                            <p className="text-xs text-gray-500 mt-1 mb-2">
+                                                Used for selecting multiple options from a list, or a single "I agree" confirmation.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </section>
+
+                            <section className="bg-white rounded-sm shadow-md border border-gray-200 overflow-hidden">
+                                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                                    <h2 className="text-lg font-bold text-gray-700">Workflow Concepts</h2>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-800 mb-1">User Tasks vs Service Tasks</h4>
+                                        <p className="text-xs text-gray-600 leading-relaxed">
+                                            <strong>User Tasks</strong> require human interaction (filling a form, approving).
+                                            <strong>Service Tasks</strong> are automated system steps that call external APIs (HTTP GET/POST) without human intervention.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-800 mb-1">Context Variables</h4>
+                                        <p className="text-xs text-gray-600 leading-relaxed">
+                                            Data passed between steps. For example, if Step 1 is an Expense Form, Step 2 (Approval) can "see" the <code>amount</code> and <code>reason</code> variables to display them.
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 )}
@@ -665,13 +744,63 @@ function StartProcessModal({ isOpen, onClose, definition, onSuccess }: { isOpen:
                                 {formDefinition.schema.map((field: any) => (
                                     <div key={field.id}>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1 tracking-wide">{field.label}</label>
-                                        <input
-                                            type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-[#D41C2C] focus:ring-1 focus:ring-[#D41C2C]"
-                                            value={formData[field.key] || ''}
-                                            onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
-                                            required={field.required}
-                                        />
+
+                                        {field.type === 'textarea' ? (
+                                            <textarea
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-[#D41C2C] focus:ring-1 focus:ring-[#D41C2C] resize-none"
+                                                rows={3}
+                                                value={formData[field.key] || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                required={field.validation?.required}
+                                            />
+                                        ) : field.type === 'select' ? (
+                                            <select
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-[#D41C2C] focus:ring-1 focus:ring-[#D41C2C] bg-white"
+                                                value={formData[field.key] || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                required={field.validation?.required}
+                                            >
+                                                <option value="">Select...</option>
+                                                {field.data?.options?.map((opt: string) => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        ) : field.type === 'radio' ? (
+                                            <div className="space-y-1">
+                                                {field.data?.options?.map((opt: string) => (
+                                                    <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name={field.key}
+                                                            value={opt}
+                                                            checked={formData[field.key] === opt}
+                                                            onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                            className="text-[#D41C2C] focus:ring-[#D41C2C]"
+                                                        />
+                                                        <span className="text-sm text-gray-700">{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        ) : field.type === 'toggle' ? (
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, [field.key]: !formData[field.key] })}
+                                                    className={`w-10 h-5 rounded-full relative transition-colors ${formData[field.key] ? 'bg-[#D41C2C]' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${formData[field.key] ? 'left-6' : 'left-1'}`} />
+                                                </button>
+                                                <span className="text-sm text-gray-600">{formData[field.key] ? 'Yes' : 'No'}</span>
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-[#D41C2C] focus:ring-1 focus:ring-[#D41C2C]"
+                                                value={formData[field.key] || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                required={field.validation?.required}
+                                            />
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -815,14 +944,68 @@ function TaskModal({ isOpen, onClose, task, onSuccess }: { isOpen: boolean; onCl
                                 {formDefinition.schema.map((field: any) => (
                                     <div key={field.id}>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1 tracking-wide">{field.label}</label>
-                                        <input
-                                            type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 disabled:bg-gray-100 disabled:text-gray-500"
-                                            value={formData[field.key] || ''}
-                                            onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
-                                            required={field.required}
-                                            disabled={isReviewMode}
-                                        />
+
+                                        {field.type === 'textarea' ? (
+                                            <textarea
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 resize-none disabled:bg-gray-100 disabled:text-gray-500"
+                                                rows={3}
+                                                value={formData[field.key] || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                required={field.validation?.required}
+                                                disabled={isReviewMode}
+                                            />
+                                        ) : field.type === 'select' ? (
+                                            <select
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                                                value={formData[field.key] || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                required={field.validation?.required}
+                                                disabled={isReviewMode}
+                                            >
+                                                <option value="">Select...</option>
+                                                {field.data?.options?.map((opt: string) => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        ) : field.type === 'radio' ? (
+                                            <div className="space-y-1">
+                                                {field.data?.options?.map((opt: string) => (
+                                                    <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name={field.key}
+                                                            value={opt}
+                                                            checked={formData[field.key] === opt}
+                                                            onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                            className="text-blue-600 focus:ring-blue-600 disabled:text-gray-400"
+                                                            disabled={isReviewMode}
+                                                        />
+                                                        <span className="text-sm text-gray-700">{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        ) : field.type === 'toggle' ? (
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <button
+                                                    type="button"
+                                                    disabled={isReviewMode}
+                                                    onClick={() => setFormData({ ...formData, [field.key]: !formData[field.key] })}
+                                                    className={`w-10 h-5 rounded-full relative transition-colors ${formData[field.key] ? 'bg-blue-600' : 'bg-gray-300'} disabled:opacity-50`}
+                                                >
+                                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${formData[field.key] ? 'left-6' : 'left-1'}`} />
+                                                </button>
+                                                <span className="text-sm text-gray-600">{formData[field.key] ? 'Yes' : 'No'}</span>
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 disabled:bg-gray-100 disabled:text-gray-500"
+                                                value={formData[field.key] || ''}
+                                                onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                                                required={field.validation?.required}
+                                                disabled={isReviewMode}
+                                            />
+                                        )}
                                     </div>
                                 ))}
                                 {isReviewMode && (

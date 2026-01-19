@@ -30,7 +30,7 @@ import Link from 'next/link';
 
 // --- Types ---
 
-type FieldType = 'text' | 'number' | 'date' | 'email' | 'phone' | 'select' | 'checkbox' | 'textarea' | 'people' | 'file' | 'signature';
+type FieldType = 'text' | 'number' | 'date' | 'email' | 'phone' | 'select' | 'checkbox' | 'radio' | 'toggle' | 'textarea' | 'people' | 'file' | 'signature';
 
 interface ValidationRules {
     required?: boolean;
@@ -80,6 +80,8 @@ const FIELD_TEMPLATES = [
     { type: 'number' as FieldType, icon: Hash, label: 'Number', color: 'bg-green-500' },
     { type: 'select' as FieldType, icon: List, label: 'Select', color: 'bg-yellow-500' },
     { type: 'checkbox' as FieldType, icon: CheckSquare, label: 'Check', color: 'bg-teal-500' },
+    { type: 'radio' as FieldType, icon: Filter, label: 'Radio', color: 'bg-purple-500' },
+    { type: 'toggle' as FieldType, icon: Activity, label: 'Switch', color: 'bg-cyan-500' },
     { type: 'date' as FieldType, icon: Calendar, label: 'Date', color: 'bg-orange-500' },
     { type: 'people' as FieldType, icon: User, label: 'People', color: 'bg-pink-600' },
     { type: 'file' as FieldType, icon: Paperclip, label: 'File', color: 'bg-slate-600' },
@@ -116,8 +118,8 @@ function SortableField({ field, rowId, isSelected, onClick, onDelete }: {
                     <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold text-slate-900 truncate">
                             {field.label}
-                            {field.validation.required && <span className="text-[#D41C2C]">*</span>}
-                            {field.logic.visibility && <span className="text-[10px] ml-2 text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">Logic</span>}
+                            {field.validation?.required && <span className="text-[#D41C2C]">*</span>}
+                            {field.logic?.visibility && <span className="text-[10px] ml-2 text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">Logic</span>}
                         </div>
                         <div className="text-xs text-slate-500 font-mono truncate">{field.key}</div>
                     </div>
@@ -227,11 +229,27 @@ export default function EnterpriseFormDesigner() {
                 const firstItem = form.schema[0];
                 if (firstItem && typeof firstItem === 'object' && 'fields' in firstItem) {
                     // It's rows
-                    loadedRows = form.schema as FormRow[];
+                    loadedRows = (form.schema as FormRow[]).map(row => ({
+                        ...row,
+                        fields: row.fields.map(f => ({
+                            ...f,
+                            validation: f.validation || {},
+                            logic: f.logic || {},
+                            data: f.data || {}
+                        }))
+                    }));
                 } else {
                     // It's a flat list of fields (from curl), wrap in single row
                     // Generate IDs for fields if missing? The curled fields have IDs.
-                    loadedRows = [{ id: 'row_imported', fields: form.schema as FormField[] }];
+                    loadedRows = [{
+                        id: 'row_imported',
+                        fields: (form.schema as FormField[]).map(f => ({
+                            ...f,
+                            validation: f.validation || {},
+                            logic: f.logic || {},
+                            data: f.data || {}
+                        }))
+                    }];
                 }
             }
         }
@@ -721,12 +739,14 @@ export default function EnterpriseFormDesigner() {
                                     {selectedField.data.dataSource === 'static' ? (
                                         <div>
                                             <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Options (one per line)</label>
-                                            <textarea
-                                                value={selectedField.data.options?.join('\n') || ''}
-                                                onChange={(e) => updateField(selectedField.id, { data: { options: e.target.value.split('\n') } })}
-                                                className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none resize-none"
-                                                rows={8}
-                                            />
+                                            {(selectedField.type === 'select' || selectedField.type === 'radio') && (
+                                                <textarea
+                                                    value={selectedField.data.options?.join('\n') || ''}
+                                                    onChange={(e) => updateField(selectedField.id, { data: { options: e.target.value.split('\n') } })}
+                                                    className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none resize-none"
+                                                    rows={8}
+                                                />
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="space-y-4">

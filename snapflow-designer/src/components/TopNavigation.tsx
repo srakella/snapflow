@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, FileText, Settings2, Activity, Rocket, Home, Briefcase, LogOut } from 'lucide-react';
+import { LayoutGrid, FileText, Settings2, Activity, Rocket, Home, Briefcase, LogOut, Zap } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 export function TopNavigation() {
@@ -34,9 +34,7 @@ export function TopNavigation() {
         <nav className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-50 sticky top-0 font-sans">
             {/* Logo */}
             <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-[#D41C2C] rounded-lg flex items-center justify-center text-white shadow-sm">
-                    <Rocket size={20} className="fill-white" />
-                </div>
+                <img src="/snapflowlogo.png" alt="SnapFlow Logo" className="w-8 h-8 rounded-lg object-contain" />
                 <span className="font-bold text-gray-900 text-lg tracking-tight">SnapFlow</span>
             </div>
 
