@@ -24,6 +24,7 @@ export function SidePalette() {
         { type: 'timer', label: 'Timer', icon: <Clock size={16} />, desc: 'Delay/Wait', shape: 'circle' },
         { type: 'aiAgent', label: 'AI Agent', icon: <Sparkles size={16} />, desc: 'GenAI Task', shape: 'rect' },
         { type: 'rulesEngine', label: 'Rules', icon: <FileCode size={16} />, desc: 'Business Rules', shape: 'rect' },
+        { type: 'dynamicRouter', label: 'Dynamic', icon: <Zap size={16} />, desc: 'Dynamic Router', shape: 'rect' },
         { type: 'gateway', label: 'Gateway', icon: <GitBranch size={16} />, desc: 'Decision Point', shape: 'diamond' },
     ];
 

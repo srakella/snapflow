@@ -2,10 +2,21 @@ import React from 'react';
 import { useStore } from '../store/useStore';
 import { X, Settings2, Database, Shield, Activity, FileText, User, Sparkles, Trash2 } from 'lucide-react';
 
+const AVAILABLE_USERS = [
+    { id: 'jdoe', name: 'John Doe', email: 'john@example.com' },
+    { id: 'asmith', name: 'Alice Smith', email: 'alice@example.com' },
+    { id: 'admin', name: 'System Admin', email: 'admin@snapflow.com' },
+    { id: 'hr_manager', name: 'HR Manager', email: 'hr@example.com' },
+    { id: 'bwayne', name: 'Bruce Wayne', email: 'bruce@wayne.com' },
+    { id: 'clark', name: 'Clark Kent', email: 'clark@dailyplanet.com' },
+    { id: 'diana', name: 'Diana Prince', email: 'diana@themyscira.com' },
+];
+
 export function PropertiesSidebar() {
     const { selectedNode, setSelectedNode, updateNodeData, selectedEdge, setSelectedEdge, updateEdgeData } = useStore();
     const [availableForms, setAvailableForms] = React.useState<any[]>([]);
     const [activeTab, setActiveTab] = React.useState<'general' | 'config' | 'data'>('general');
+    const [showUserLookup, setShowUserLookup] = React.useState(false);
 
     React.useEffect(() => {
         if (selectedNode?.type === 'task' || selectedNode?.type === 'start') {
@@ -205,29 +216,31 @@ export function PropertiesSidebar() {
                                             </p>
                                         </div>
                                     </div>
-                                ) : selectedNode.type === 'task' ? (
+                                ) : (selectedNode.type === 'task' || selectedNode.type === 'userTask' || selectedNode.type === 'serviceTask') ? (
                                     <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                                <Settings2 size={12} /> Task Type
-                                            </label>
-                                            <div className="flex bg-gray-100 p-1 rounded-lg">
-                                                <button
-                                                    onClick={() => updateNodeData(selectedNode.id, { config: { ...selectedNode.data.config, taskType: 'user' } })}
-                                                    className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${(!selectedNode.data.config?.taskType || selectedNode.data.config?.taskType === 'user') ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                                                >
-                                                    User Task
-                                                </button>
-                                                <button
-                                                    onClick={() => updateNodeData(selectedNode.id, { config: { ...selectedNode.data.config, taskType: 'service' } })}
-                                                    className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${selectedNode.data.config?.taskType === 'service' ? 'bg-white text-[#D41C2C] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                                                >
-                                                    Service Task
-                                                </button>
+                                        {selectedNode.type === 'task' && (
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                    <Settings2 size={12} /> Task Type
+                                                </label>
+                                                <div className="flex bg-gray-100 p-1 rounded-lg">
+                                                    <button
+                                                        onClick={() => updateNodeData(selectedNode.id, { config: { ...selectedNode.data.config, taskType: 'user' } })}
+                                                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${(!selectedNode.data.config?.taskType || selectedNode.data.config?.taskType === 'user') ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                                    >
+                                                        User Task
+                                                    </button>
+                                                    <button
+                                                        onClick={() => updateNodeData(selectedNode.id, { config: { ...selectedNode.data.config, taskType: 'service' } })}
+                                                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${selectedNode.data.config?.taskType === 'service' ? 'bg-white text-[#D41C2C] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                                    >
+                                                        Service Task
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
 
-                                        {selectedNode.data.config?.taskType === 'service' && (
+                                        {(selectedNode.data.config?.taskType === 'service' || selectedNode.type === 'serviceTask') && (
                                             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                                                 <div className="grid grid-cols-3 gap-2">
                                                     <div className="col-span-1">
@@ -271,7 +284,54 @@ export function PropertiesSidebar() {
                                                 </div>
                                             </div>
                                         )}
+                                        {(!selectedNode.data.config?.taskType || selectedNode.data.config?.taskType === 'user') && (
+                                            <div className="space-y-4 pt-2">
+                                                <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-center mb-4">
+                                                    <p className="text-xs text-blue-800">
+                                                        Configure assignment and forms in the <strong>Data & Form</strong> tab.
+                                                    </p>
+                                                </div>
 
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                        <Activity size={12} /> Conditional Execution
+                                                    </label>
+                                                    <div className="p-3 border border-gray-200 rounded-lg bg-gray-50/50">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xs font-bold text-gray-700">Run only if...</span>
+                                                            <label className="flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only peer"
+                                                                    checked={!!selectedNode.data.config?.activationCondition}
+                                                                    onChange={(e) => updateNodeData(selectedNode.id, {
+                                                                        config: { ...selectedNode.data.config, activationCondition: e.target.checked ? '${amount >= 1000}' : undefined }
+                                                                    })}
+                                                                />
+                                                                <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                                            </label>
+                                                        </div>
+
+                                                        {selectedNode.data.config?.activationCondition !== undefined && (
+                                                            <div className="animate-in fade-in slide-in-from-top-1">
+                                                                <input
+                                                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded text-xs font-mono text-blue-600 focus:ring-1 focus:ring-blue-500 outline-none"
+                                                                    value={selectedNode.data.config?.activationCondition}
+                                                                    onChange={(e) => updateNodeData(selectedNode.id, {
+                                                                        config: { ...selectedNode.data.config, activationCondition: e.target.value }
+                                                                    })}
+                                                                    placeholder="${condition}"
+                                                                />
+                                                                <p className="text-[10px] text-gray-400 mt-1.5 leading-tight">
+                                                                    Task will be active only if this expression evaluates to true. <br />
+                                                                    Example: <code className="bg-gray-100 px-1 rounded">{'${amount >= 1000}'}</code>
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                         {(!selectedNode.data.config?.taskType || selectedNode.data.config?.taskType === 'user') && (
                                             <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-center">
                                                 <p className="text-xs text-blue-800">
@@ -294,28 +354,85 @@ export function PropertiesSidebar() {
                         {/* DATA TAB */}
                         {activeTab === 'data' && (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-                                {(selectedNode.type === 'task' || selectedNode.type === 'start') ? (
+                                {(selectedNode.type === 'task' || selectedNode.type === 'start' || selectedNode.type === 'userTask' || selectedNode.type === 'serviceTask') ? (
                                     <>
                                         {/* User Task Data Config */}
-                                        {(!selectedNode.data.config?.taskType || selectedNode.data.config?.taskType === 'user') && (
+                                        {(!selectedNode.data.config?.taskType || selectedNode.data.config?.taskType === 'user' || selectedNode.type === 'userTask') && selectedNode.type !== 'serviceTask' && (
                                             <>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                                        <User size={12} /> Assignee Group
-                                                    </label>
-                                                    <select
-                                                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#D41C2C]/20 focus:border-[#D41C2C] outline-none"
-                                                        value={selectedNode.data.config?.assignee || ''}
-                                                        onChange={(e) => updateNodeData(selectedNode.id, {
-                                                            config: { ...selectedNode.data.config, assignee: e.target.value }
-                                                        })}
-                                                    >
-                                                        <option value="">Unassigned</option>
-                                                        <option value="admins">Administrators</option>
-                                                        <option value="approvers">Approvers Team</option>
-                                                        <option value="users">Standard Users</option>
-                                                        <option value="manager">Manager</option>
-                                                    </select>
+                                                <div className="space-y-3">
+                                                    <div className="relative">
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                            <User size={12} /> Assignee (User)
+                                                        </label>
+                                                        <div className="relative group">
+                                                            <input
+                                                                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#D41C2C]/20 focus:border-[#D41C2C] outline-none"
+                                                                value={selectedNode.data.config?.assignee || ''}
+                                                                onChange={(e) => updateNodeData(selectedNode.id, {
+                                                                    config: { ...selectedNode.data.config, assignee: e.target.value }
+                                                                })}
+                                                                onFocus={() => setShowUserLookup(true)}
+                                                                onBlur={() => setTimeout(() => setShowUserLookup(false), 200)}
+                                                                placeholder="Search users..."
+                                                            />
+                                                            {/* User Type-Ahead Dropdown */}
+                                                            {showUserLookup && (
+                                                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+                                                                    <div className="p-1">
+                                                                        {AVAILABLE_USERS.filter(u =>
+                                                                            u.name.toLowerCase().includes((selectedNode.data.config?.assignee || '').toLowerCase()) ||
+                                                                            u.id.toLowerCase().includes((selectedNode.data.config?.assignee || '').toLowerCase())
+                                                                        ).length === 0 ? (
+                                                                            <div className="px-3 py-2 text-xs text-gray-400 italic">No users found</div>
+                                                                        ) : (
+                                                                            AVAILABLE_USERS.filter(u =>
+                                                                                u.name.toLowerCase().includes((selectedNode.data.config?.assignee || '').toLowerCase()) ||
+                                                                                u.id.toLowerCase().includes((selectedNode.data.config?.assignee || '').toLowerCase())
+                                                                            ).map(user => (
+                                                                                <button
+                                                                                    key={user.id}
+                                                                                    className="w-full text-left px-3 py-2 hover:bg-red-50 rounded-md transition-colors flex items-center gap-2 group"
+                                                                                    onClick={() => updateNodeData(selectedNode.id, {
+                                                                                        config: { ...selectedNode.data.config, assignee: user.id }
+                                                                                    })}
+                                                                                >
+                                                                                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-600 group-hover:bg-[#D41C2C] group-hover:text-white transition-colors">
+                                                                                        {user.name.charAt(0)}
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <div className="text-xs font-bold text-gray-800">{user.name}</div>
+                                                                                        <div className="text-[10px] text-gray-400 font-mono">@{user.id}</div>
+                                                                                    </div>
+                                                                                </button>
+                                                                            ))
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-400 mt-1">Direct assignment. User sees task immediately.</p>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                            <Shield size={12} /> Candidate Groups
+                                                        </label>
+                                                        <select
+                                                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#D41C2C]/20 focus:border-[#D41C2C] outline-none"
+                                                            value={selectedNode.data.config?.candidateGroups || ''}
+                                                            onChange={(e) => updateNodeData(selectedNode.id, {
+                                                                config: { ...selectedNode.data.config, candidateGroups: e.target.value }
+                                                            })}
+                                                        >
+                                                            <option value="">Select Group...</option>
+                                                            <option value="admins">Administrators</option>
+                                                            <option value="approvers">Approvers Team</option>
+                                                            <option value="hr">HR Department</option>
+                                                            <option value="managers">Managers</option>
+                                                            <option value="users">All Users</option>
+                                                        </select>
+                                                        <p className="text-[10px] text-gray-400 mt-1">Users in group can "claim" this task.</p>
+                                                    </div>
                                                 </div>
 
                                                 <div className="pt-4 border-t border-gray-100">
@@ -361,7 +478,7 @@ export function PropertiesSidebar() {
                                         )}
 
                                         {/* Service Task Data Config */}
-                                        {selectedNode.data.config?.taskType === 'service' && (
+                                        {(selectedNode.data.config?.taskType === 'service' || selectedNode.type === 'serviceTask') && (
                                             <div>
                                                 <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl mb-4">
                                                     <h4 className="text-yellow-800 text-xs font-bold mb-1 flex items-center gap-2">

@@ -1,8 +1,8 @@
 import Editor from "@/components/Editor";
 
-export default function Home() {
+export default function DesignerPage() {
     return (
-        <main className="min-h-screen">
+        <main className="h-full">
             <Editor />
         </main>
     );

@@ -93,15 +93,7 @@ export default function DashboardPage() {
                     >
                         Active Instances
                     </button>
-                    <button
-                        className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'tasks'
-                            ? 'border-blue-600 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                        onClick={() => setActiveTab('tasks')}
-                    >
-                        My Tasks
-                    </button>
+
                     <button
                         className={`px-6 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'admin'
                             ? 'border-red-600 text-red-600'
@@ -207,53 +199,7 @@ export default function DashboardPage() {
                     </section>
                 )}
 
-                {activeTab === 'tasks' && (
-                    <section className="bg-white rounded-sm shadow-md border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
-                                <ClipboardList size={20} className="text-blue-600" />
-                                My Tasks
-                            </h2>
-                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{tasks.length}</span>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-100 text-gray-500 font-bold uppercase text-xs">
-                                    <tr>
-                                        <th className="px-6 py-3">Task Name</th>
-                                        <th className="px-6 py-3">Created</th>
-                                        <th className="px-6 py-3 text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {isLoading && tasks.length === 0 ? (
-                                        <tr><td colSpan={3} className="p-4 text-center text-gray-400">Loading tasks...</td></tr>
-                                    ) : tasks.length === 0 ? (
-                                        <tr><td colSpan={3} className="p-8 text-center text-gray-400 italic">No tasks assigned to you.</td></tr>
-                                    ) : tasks.map((task) => (
-                                        <tr key={task.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="font-medium text-gray-800">{task.name || 'Untitled Task'}</div>
-                                                <div className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {task.id}</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-600 text-xs">
-                                                {new Date(task.createTime).toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => openTaskModal(task)}
-                                                    className="inline-flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wide hover:bg-blue-700 transition-colors shadow-sm"
-                                                >
-                                                    Open
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-                )}
+
 
                 {activeTab === 'admin' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">

@@ -35,6 +35,7 @@ import { SaveWorkflowModal } from './SaveWorkflowModal';
 import { UserTaskNode } from './nodes/UserTaskNode';
 import { ServiceTaskNode } from './nodes/ServiceTaskNode';
 import { RulesEngineNode } from './nodes/RulesEngineNode';
+import { DynamicRouterNode } from './nodes/DynamicRouterNode';
 
 const nodeTypes: NodeTypes = {
     start: StartNode as any,
@@ -47,6 +48,7 @@ const nodeTypes: NodeTypes = {
     email: EmailNode as any,
     timer: TimerNode as any,
     rulesEngine: RulesEngineNode as any,
+    dynamicRouter: DynamicRouterNode as any,
 };
 
 const defaultEdgeOptions = {
@@ -153,7 +155,7 @@ function Flow() {
     };
 
     return (
-        <div className="flex h-screen w-full bg-[#f4f4f4] overflow-hidden">
+        <div className="flex h-full w-full bg-[#f4f4f4] overflow-hidden">
             <SidePalette />
 
             <div className="flex-grow relative" ref={reactFlowWrapper}>
@@ -188,33 +190,15 @@ function Flow() {
                     <Controls />
                     <MiniMap zoomable pannable />
 
-                    <Panel position="top-left" className="bg-white/95 backdrop-blur-sm p-5 border-t-4 border-[#D41C2C] rounded-sm shadow-xl flex items-center gap-6">
-                        <Link href="/" className="hover:opacity-80 transition-opacity group">
-                            <h1 className="text-2xl font-serif font-bold text-[#D41C2C] leading-none tracking-tight flex items-center gap-2">
-                                <Home size={20} className="text-[#D41C2C] group-hover:scale-110 transition-transform" />
-                                SnapFlow
-                            </h1>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Enterprise Workflow Engine</p>
-                        </Link>
+                    <Panel position="top-left" className="bg-white/95 backdrop-blur-sm p-3 border-t-4 border-[#D41C2C] rounded-sm shadow-xl flex items-center gap-4">
+                        <div className="flex flex-col">
+                            <h2 className="text-lg font-bold text-gray-900 leading-none">Workflow Designer</h2>
+                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Editing: New Process</span>
+                        </div>
 
-                        <div className="h-10 w-[1px] bg-gray-200" />
+                        <div className="h-8 w-[1px] bg-gray-200" />
 
-                        <div className="flex gap-3">
-                            <Link href="/" className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-sm text-sm font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide">
-                                <Home size={16} />
-                                Home
-                            </Link>
-
-                            <Link href="/forms/designer" className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-sm text-sm font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide">
-                                <FileText size={16} />
-                                Forms
-                            </Link>
-
-                            <Link href="/dashboard" className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-sm text-sm font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide">
-                                <LayoutGrid size={16} />
-                                Monitor
-                            </Link>
-
+                        <div className="flex gap-2">
                             <LoadWorkflowButton
                                 onLoad={(json: any) => {
                                     const { x, y, zoom } = json.viewport;
@@ -225,7 +209,7 @@ function Flow() {
 
                             <button
                                 onClick={() => setIsSaveModalOpen(true)}
-                                className="flex items-center gap-2 bg-[#D41C2C] text-white px-5 py-2 rounded-sm text-sm font-bold shadow-sm hover:bg-[#B81926] hover:shadow-md transition-all active:scale-95 group uppercase tracking-wide"
+                                className="flex items-center gap-2 bg-[#D41C2C] text-white px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:bg-[#B81926] hover:shadow-md transition-all active:scale-95 group uppercase tracking-wide"
                             >
                                 <Rocket size={16} className="group-hover:animate-bounce" />
                                 Save & Launch

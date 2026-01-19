@@ -330,8 +330,8 @@ export default function EnterpriseFormDesigner() {
     };
 
     const handleAIGenerate = () => {
-        const prompt = prompt("✨ Describe the form you want to create:\n(e.g., 'Expense report with receipt upload and supervisor approval')");
-        if (!prompt) return;
+        const userPrompt = prompt("✨ Describe the form you want to create:\n(e.g., 'Expense report with receipt upload and supervisor approval')");
+        if (!userPrompt) return;
 
         setIsAIGenerating(true);
         // Mocking AI generation - normally this would call an LLM
@@ -419,10 +419,7 @@ export default function EnterpriseFormDesigner() {
                                             <Sparkles size={48} className="text-[#D41C2C]" />
                                         </div>
                                         <p className="font-bold text-xl text-slate-700 mb-2">Start from Scratch</p>
-                                        <p className="text-sm text-slate-500 mb-6">Click "Add Row" or use "AI Magic" to generate a form</p>
-                                        <button onClick={handleAIGenerate} className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-lg transition-all">
-                                            <Sparkles size={18} /> Generate with AI
-                                        </button>
+                                        <p className="text-sm text-slate-500 mb-6">Click "Add Row" to start building your form</p>
                                     </div>
                                 ) : (
                                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={(e) => setActiveId(e.active.id as string)} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
