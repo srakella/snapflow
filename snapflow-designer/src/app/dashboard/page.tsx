@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Play, Activity, Package, Loader2, ClipboardList, Trash2, Ban, Home, PenTool, Search, ArrowUpDown, SlidersHorizontal, Eye, MessageCircle, Send, BookOpen, ToggleRight, CheckSquare, List, MousePointerClick } from 'lucide-react';
 import Link from 'next/link';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { UserManagementPanel } from '@/components/UserManagementPanel';
 
 export default function DashboardPage() {
     const [deployments, setDeployments] = useState<any[]>([]);
@@ -559,15 +560,17 @@ export default function DashboardPage() {
                             )}
 
 
+                            {/* USER MANAGEMENT TAB */}
+                            {adminSubTab === 'users' && <UserManagementPanel />}
+
                             {/* PLACEHOLDERS */}
-                            {(adminSubTab === 'users' || adminSubTab === 'groups' || adminSubTab === 'settings') && (
+                            {(adminSubTab === 'groups' || adminSubTab === 'settings') && (
                                 <div className="bg-white rounded-sm shadow-md border border-gray-200 p-12 text-center">
                                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
                                         <SlidersHorizontal size={24} />
                                     </div>
                                     <h3 className="text-lg font-bold text-gray-700 mb-2">Coming Soon</h3>
                                     <p className="text-sm text-gray-500 max-w-sm mx-auto">
-                                        {adminSubTab === 'users' && "Advanced user management, roles, and permissions."}
                                         {adminSubTab === 'groups' && "Group hierarchies and membership rules."}
                                         {adminSubTab === 'settings' && "System-wide configuration, mail settings, and integration keys."}
                                     </p>
