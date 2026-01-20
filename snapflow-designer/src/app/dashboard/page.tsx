@@ -111,12 +111,7 @@ export default function DashboardPage() {
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Runtime Dashboard</p>
                 </div>
                 <div className="flex gap-4">
-                    <Link href="/" className="text-sm font-bold text-gray-600 hover:text-[#D41C2C] transition-colors uppercase tracking-wide flex items-center gap-1">
-                        <Home size={16} /> Home
-                    </Link>
-                    <Link href="/designer" className="text-sm font-bold text-gray-600 hover:text-[#D41C2C] transition-colors uppercase tracking-wide flex items-center gap-1">
-                        <PenTool size={16} /> Designer
-                    </Link>
+                    {/* Links removed */}
                 </div>
             </header>
 

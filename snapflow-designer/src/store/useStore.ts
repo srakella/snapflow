@@ -30,6 +30,8 @@ export type AppState = {
         version: number;
         id: string | null;
     };
+    isCollaborationPanelOpen: boolean;
+    toggleCollaborationPanel: () => void;
     onNodesChange: OnNodesChange<AppNode>;
     onEdgesChange: OnEdgesChange;
     onConnect: (connection: Connection) => void;
@@ -54,6 +56,8 @@ export const useStore = create<AppState>((set, get) => ({
         version: 1,
         id: null,
     },
+    isCollaborationPanelOpen: false,
+    toggleCollaborationPanel: () => set((state) => ({ isCollaborationPanelOpen: !state.isCollaborationPanelOpen })),
     onNodesChange: (changes) => {
         set({
             nodes: applyNodeChanges(changes, get().nodes) as AppNode[],

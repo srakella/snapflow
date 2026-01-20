@@ -144,7 +144,7 @@ function Flow() {
 
 
     const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
-    const [isCommentsOpen, setIsCommentsOpen] = React.useState(false);
+
 
     const handleDeploy = async (name: string) => {
         const flowObject = toObject();
@@ -198,7 +198,7 @@ function Flow() {
                 >
                     <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
                     <Controls />
-                    <MiniMap zoomable pannable />
+
 
                     <Panel position="top-left" className="bg-white/95 backdrop-blur-sm p-3 border-t-4 border-[#D41C2C] rounded-sm shadow-xl flex items-center gap-4">
                         <div className="flex flex-col">
@@ -211,15 +211,6 @@ function Flow() {
                         <div className="h-8 w-[1px] bg-gray-200" />
 
                         <div className="flex gap-2">
-                            <Link
-                                href="/dashboard"
-                                className="flex items-center gap-2 bg-white text-gray-700 px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:bg-gray-50 hover:shadow-md transition-all active:scale-95 border border-gray-200 uppercase tracking-wide"
-                                title="Exit to Dashboard"
-                            >
-                                <Home size={16} />
-                                Exit
-                            </Link>
-                            <div className="h-4 w-[1px] bg-gray-200" />
                             <button
                                 onClick={handleNewProcess}
                                 className="flex items-center gap-2 bg-white text-gray-700 px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:bg-gray-50 hover:shadow-md transition-all active:scale-95 border border-gray-200 uppercase tracking-wide"
@@ -254,19 +245,7 @@ function Flow() {
                                 Save
                             </button>
 
-                            <div className="h-8 w-[1px] bg-gray-200 mx-2" />
 
-                            <button
-                                onClick={() => setIsCommentsOpen(!isCommentsOpen)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-sm font-bold shadow-sm transition-all border uppercase tracking-wide ${isCommentsOpen
-                                    ? 'bg-slate-800 text-white border-slate-900'
-                                    : 'bg-white text-slate-600 border-gray-200 hover:bg-slate-50'
-                                    }`}
-                                title="Toggle Comments"
-                            >
-                                <MessageSquare size={16} />
-                                Comments
-                            </button>
                         </div>
                     </Panel>
                 </ReactFlow>
@@ -276,15 +255,6 @@ function Flow() {
                     onClose={() => setIsSaveModalOpen(false)}
                     onSave={handleDeploy}
                 />
-
-                {/* Comments Panel Overlay */}
-                {isCommentsOpen && (
-                    <CommentsPanel
-                        workflowId="draft-workflow-id" // TODO: Connect to actual workflow ID from store/context
-                        selectedNodeId={selectedNode ? selectedNode.id : null}
-                        onClose={() => setIsCommentsOpen(false)}
-                    />
-                )}
             </div >
 
             <PropertiesSidebar />

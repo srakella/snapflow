@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Rocket, User as UserIcon, Shield, ChevronRight } from 'lucide-react';
+import { Shield, ChevronRight } from 'lucide-react';
 import { useAuth, User } from '@/components/AuthContext';
 
 export default function LoginPage() {
@@ -37,8 +37,8 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
             <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-300">
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-[#D41C2C] rounded-xl mb-4 shadow-lg shadow-red-900/20">
-                        <Rocket size={32} className="text-white" />
+                    <div className="flex justify-center mb-6">
+                        <img src="/snapflowlogo.png" alt="SnapFlow" className="h-16 w-auto" />
                     </div>
                     <h1 className="text-2xl font-bold text-slate-800">Welcome to SnapFlow</h1>
                     <p className="text-slate-500 mt-2">Select a persona to simulate login</p>

@@ -6,9 +6,14 @@ import { usePathname } from 'next/navigation';
 import { LayoutGrid, FileText, Settings2, Activity, Rocket, Home, Briefcase, LogOut, Zap } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
+import { useStore } from '../store/useStore';
+import { NotificationBell } from './NotificationBell';
+import { MessageSquare } from 'lucide-react';
+
 export function TopNavigation() {
     const pathname = usePathname();
     const { user, logout, hasRole } = useAuth();
+    const { toggleCollaborationPanel, isCollaborationPanelOpen } = useStore();
 
     const isActive = (path: string) => {
         if (path === '/' && pathname === '/') return true;
@@ -60,6 +65,18 @@ export function TopNavigation() {
 
             {/* User Profile / Actions */}
             <div className="flex items-center gap-3">
+                <NotificationBell userId={user.id} />
+
+                <button
+                    onClick={toggleCollaborationPanel}
+                    className={`p-2 rounded-full transition-colors relative ${isCollaborationPanelOpen ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100 hover:text-blue-600'}`}
+                    title="Collaboration & Team"
+                >
+                    <MessageSquare size={20} />
+                </button>
+
+                <div className="h-6 w-px bg-gray-200 mx-1"></div>
+
                 <button
                     onClick={logout}
                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-[#D41C2C] hover:bg-red-50 rounded transition-all uppercase"
