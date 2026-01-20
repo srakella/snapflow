@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Play, Activity, Package, Loader2, ClipboardList, Trash2, Ban, Home, PenTool, Search, ArrowUpDown, SlidersHorizontal, Eye, MessageCircle, Send, BookOpen, ToggleRight, CheckSquare, List, MousePointerClick } from 'lucide-react';
 import Link from 'next/link';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 export default function DashboardPage() {
     const [deployments, setDeployments] = useState<any[]>([]);
@@ -17,9 +18,19 @@ export default function DashboardPage() {
     const [selectedInstance, setSelectedInstance] = useState<any>(null);
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'deployments' | 'instances' | 'tasks' | 'history' | 'admin' | 'help'>('deployments');
-    const [adminSubTab, setAdminSubTab] = useState<'definitions' | 'instances' | 'users' | 'groups' | 'settings'>('definitions');
+    const [adminSubTab, setAdminSubTab] = useState<'definitions' | 'instances' | 'processes' | 'users' | 'groups' | 'settings'>('definitions');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' as 'asc' | 'desc' });
+    const [savedWorkflows, setSavedWorkflows] = useState<any[]>([]);
+
+    // Confirmation dialog state
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        variant?: 'danger' | 'warning' | 'info';
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
     const filteredDeployments = React.useMemo(() => {
         return deployments.filter(d =>
@@ -44,22 +55,25 @@ export default function DashboardPage() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [defsRes, instsRes, tasksRes, historyRes] = await Promise.all([
+            const [defsRes, instsRes, tasksRes, historyRes, workflowsRes] = await Promise.all([
                 fetch('http://localhost:8081/api/runtime/definitions'),
                 fetch('http://localhost:8081/api/runtime/instances'),
                 fetch('http://localhost:8081/api/runtime/tasks'),
-                fetch('http://localhost:8081/api/audit/instances')
+                fetch('http://localhost:8081/api/audit/instances'),
+                fetch('http://localhost:8081/api/workflows')
             ]);
 
             const defs = await defsRes.json();
             const insts = await instsRes.json();
             const tasksData = await tasksRes.json();
             const historyData = historyRes.ok ? await historyRes.json() : [];
+            const workflowsData = workflowsRes.ok ? await workflowsRes.json() : [];
 
             setDeployments(defs);
             setInstances(insts);
             setTasks(tasksData);
             setHistory(historyData);
+            setSavedWorkflows(workflowsData);
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
         } finally {
@@ -347,6 +361,12 @@ export default function DashboardPage() {
                                 >
                                     Instances
                                 </button>
+                                <button
+                                    onClick={() => setAdminSubTab('processes')}
+                                    className={`w-full text-left px-4 py-2 text-sm font-bold border-l-4 transition-all ${adminSubTab === 'processes' ? 'border-red-600 bg-red-50 text-red-700' : 'border-transparent text-gray-500 hover:bg-gray-50'}`}
+                                >
+                                    Process Management
+                                </button>
                                 <div className="h-px bg-gray-100 my-2"></div>
                                 <button
                                     onClick={() => setAdminSubTab('users')}
@@ -401,10 +421,16 @@ export default function DashboardPage() {
                                                         <td className="px-6 py-4 text-right">
                                                             <button
                                                                 onClick={() => {
-                                                                    if (confirm('Are you sure you want to DELETE this version? This will cascade delete all instances.')) {
-                                                                        fetch(`http://localhost:8081/api/admin/definitions/${def.id}`, { method: 'DELETE' })
-                                                                            .then(() => fetchData());
-                                                                    }
+                                                                    setConfirmDialog({
+                                                                        isOpen: true,
+                                                                        title: 'Delete Process Definition',
+                                                                        message: `Are you sure you want to delete "${def.name}" (v${def.version})? This will permanently remove the deployment and cascade delete all running instances.`,
+                                                                        variant: 'danger',
+                                                                        onConfirm: () => {
+                                                                            fetch(`http://localhost:8081/api/admin/definitions/${def.id}`, { method: 'DELETE' })
+                                                                                .then(() => fetchData());
+                                                                        }
+                                                                    });
                                                                 }}
                                                                 className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 hover:bg-red-100 px-3 py-1.5 rounded-sm text-xs font-bold uppercase transition-colors"
                                                             >
@@ -447,14 +473,86 @@ export default function DashboardPage() {
                                                         <td className="px-6 py-4 text-right">
                                                             <button
                                                                 onClick={() => {
-                                                                    if (confirm('Are you sure you want to STOP this instance?')) {
-                                                                        fetch(`http://localhost:8081/api/runtime/instances/${inst.id}`, { method: 'DELETE' })
-                                                                            .then(() => fetchData());
-                                                                    }
+                                                                    setConfirmDialog({
+                                                                        isOpen: true,
+                                                                        title: 'Stop Process Instance',
+                                                                        message: `Are you sure you want to stop this running instance of "${inst.processDefinitionName}"? This action cannot be undone and will terminate the process immediately.`,
+                                                                        variant: 'warning',
+                                                                        onConfirm: () => {
+                                                                            fetch(`http://localhost:8081/api/runtime/instances/${inst.id}`, { method: 'DELETE' })
+                                                                                .then(() => fetchData());
+                                                                        }
+                                                                    });
                                                                 }}
                                                                 className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 hover:bg-red-100 px-3 py-1.5 rounded-sm text-xs font-bold uppercase transition-colors"
                                                             >
                                                                 <Ban size={14} /> Stop
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+                            )}
+
+
+                            {/* PROCESS MANAGEMENT TAB */}
+                            {adminSubTab === 'processes' && (
+                                <section className="bg-white rounded-sm shadow-md border border-red-200 overflow-hidden">
+                                    <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center justify-between">
+                                        <div>
+                                            <h2 className="text-lg font-bold text-red-800 flex items-center gap-2">
+                                                <Package size={20} className="text-red-600" />
+                                                Process Management
+                                            </h2>
+                                            <p className="text-xs text-red-600 mt-1">Manage saved workflow designs from MongoDB</p>
+                                        </div>
+                                        <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full">{savedWorkflows.length}</span>
+                                    </div>
+                                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-white text-gray-500 font-bold uppercase text-xs border-b border-gray-100 sticky top-0 z-10 shadow-sm">
+                                                <tr>
+                                                    <th className="px-6 py-3">Name</th>
+                                                    <th className="px-6 py-3">ID</th>
+                                                    <th className="px-6 py-3">Last Updated</th>
+                                                    <th className="px-6 py-3 text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {isLoading && savedWorkflows.length === 0 ? (
+                                                    <tr><td colSpan={4} className="p-4 text-center text-gray-400">Loading workflows...</td></tr>
+                                                ) : savedWorkflows.length === 0 ? (
+                                                    <tr><td colSpan={4} className="p-8 text-center text-gray-400 italic">No saved workflow designs found.</td></tr>
+                                                ) : savedWorkflows.map((wf) => (
+                                                    <tr key={wf.id} className="hover:bg-red-50/30 transition-colors">
+                                                        <td className="px-6 py-4">
+                                                            <div className="font-medium text-gray-800">{wf.name || 'Untitled'}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 font-mono text-xs text-gray-500">{wf.id}</td>
+                                                        <td className="px-6 py-4 text-gray-600 text-xs">
+                                                            {wf.updatedAt ? new Date(wf.updatedAt).toLocaleString() : 'N/A'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setConfirmDialog({
+                                                                        isOpen: true,
+                                                                        title: 'Delete Workflow Design',
+                                                                        message: `Are you sure you want to delete "${wf.name}"? This will permanently remove the saved workflow design from MongoDB. This action cannot be undone.`,
+                                                                        variant: 'danger',
+                                                                        onConfirm: () => {
+                                                                            fetch(`http://localhost:8081/api/workflows/${wf.id}`, { method: 'DELETE' })
+                                                                                .then(() => fetchData())
+                                                                                .catch(err => console.error('Failed to delete:', err));
+                                                                        }
+                                                                    });
+                                                                }}
+                                                                className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 hover:bg-red-100 px-3 py-1.5 rounded-sm text-xs font-bold uppercase transition-colors"
+                                                            >
+                                                                <Trash2 size={14} /> Delete
                                                             </button>
                                                         </td>
                                                     </tr>
@@ -627,6 +725,17 @@ export default function DashboardPage() {
                 isOpen={isInstanceDetailsOpen}
                 onClose={() => setIsInstanceDetailsOpen(false)}
                 instance={selectedInstance}
+            />
+
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                variant={confirmDialog.variant}
+                confirmText="Delete"
+                cancelText="Cancel"
             />
         </div>
     );

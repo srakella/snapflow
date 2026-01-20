@@ -25,6 +25,11 @@ export type AppState = {
     edges: Edge[];
     selectedNode: AppNode | null;
     selectedEdge: Edge | null;
+    workflowMetadata: {
+        name: string | null;
+        version: number;
+        id: string | null;
+    };
     onNodesChange: OnNodesChange<AppNode>;
     onEdgesChange: OnEdgesChange;
     onConnect: (connection: Connection) => void;
@@ -35,6 +40,8 @@ export type AppState = {
     addNode: (node: AppNode) => void;
     updateNodeData: (nodeId: string, data: Partial<NodeData>) => void;
     updateEdgeData: (edgeId: string, data: Partial<Record<string, any>>) => void;
+    setWorkflowMetadata: (metadata: { name: string | null; version: number; id: string | null }) => void;
+    resetWorkflow: () => void;
 };
 
 export const useStore = create<AppState>((set, get) => ({
@@ -42,6 +49,11 @@ export const useStore = create<AppState>((set, get) => ({
     edges: [],
     selectedNode: null,
     selectedEdge: null,
+    workflowMetadata: {
+        name: null,
+        version: 1,
+        id: null,
+    },
     onNodesChange: (changes) => {
         set({
             nodes: applyNodeChanges(changes, get().nodes) as AppNode[],
@@ -94,4 +106,16 @@ export const useStore = create<AppState>((set, get) => ({
                 : selectedEdge,
         });
     },
+    setWorkflowMetadata: (metadata) => set({ workflowMetadata: metadata }),
+    resetWorkflow: () => set({
+        nodes: [],
+        edges: [],
+        selectedNode: null,
+        selectedEdge: null,
+        workflowMetadata: {
+            name: null,
+            version: 1,
+            id: null,
+        },
+    }),
 }));

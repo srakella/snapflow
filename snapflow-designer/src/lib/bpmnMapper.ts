@@ -63,8 +63,47 @@ export function mapToBPMN(nodes: AppNode[], edges: Edge[], processName: string =
                 xml += `            </extensionElements>\n`;
                 xml += `        </serviceTask>\n`;
                 break;
+            case 'email':
+                const to = (node.data as any).config?.recipient || '';
+                const subject = (node.data as any).config?.subject || '';
+                const body = (node.data as any).config?.body || '';
+                xml += `        <serviceTask id="${id}" name="${name}" flowable:type="mail">\n`;
+                xml += `            <extensionElements>\n`;
+                xml += `                <flowable:field name="to">\n`;
+                xml += `                    <flowable:string><![CDATA[${to}]]></flowable:string>\n`;
+                xml += `                </flowable:field>\n`;
+                xml += `                <flowable:field name="subject">\n`;
+                xml += `                    <flowable:string><![CDATA[${subject}]]></flowable:string>\n`;
+                xml += `                </flowable:field>\n`;
+                xml += `                <flowable:field name="text">\n`;
+                xml += `                    <flowable:string><![CDATA[${body}]]></flowable:string>\n`;
+                xml += `                </flowable:field>\n`;
+                xml += `            </extensionElements>\n`;
+                xml += `        </serviceTask>\n`;
+                break;
+            case 'timer':
+                const duration = (node.data as any).config?.duration || 'PT1H'; // Default 1 hour if missing
+                xml += `        <intermediateCatchEvent id="${id}" name="${name}">\n`;
+                xml += `            <timerEventDefinition>\n`;
+                xml += `                <timeDuration>${duration}</timeDuration>\n`;
+                xml += `            </timerEventDefinition>\n`;
+                xml += `        </intermediateCatchEvent>\n`;
+                break;
+            case 'rulesEngine':
+                const ruleSet = (node.data as any).config?.ruleSet || '';
+                xml += `        <serviceTask id="${id}" name="${name}" flowable:delegateExpression="\${rulesDelegate}">\n`;
+                xml += `            <extensionElements>\n`;
+                xml += `                <flowable:field name="ruleSet" stringValue="${ruleSet}" />\n`;
+                xml += `            </extensionElements>\n`;
+                xml += `        </serviceTask>\n`;
+                break;
             case 'gateway':
-                xml += `        <exclusiveGateway id="${id}" name="${name}" />\n`;
+                const gatewayType = (node.data as any).config?.gatewayType || 'exclusive';
+                if (gatewayType === 'parallel') {
+                    xml += `        <parallelGateway id="${id}" name="${name}" />\n`;
+                } else {
+                    xml += `        <exclusiveGateway id="${id}" name="${name}" />\n`;
+                }
                 break;
         }
     });
@@ -74,7 +113,16 @@ export function mapToBPMN(nodes: AppNode[], edges: Edge[], processName: string =
         const id = edge.id.replace(/-/g, '_');
         const sourceRef = edge.source.replace(/-/g, '_');
         const targetRef = edge.target.replace(/-/g, '_');
-        xml += `        <sequenceFlow id="${id}" sourceRef="${sourceRef}" targetRef="${targetRef}" />\n`;
+
+        const condition = (edge.data as any)?.condition;
+
+        if (condition) {
+            xml += `        <sequenceFlow id="${id}" sourceRef="${sourceRef}" targetRef="${targetRef}">\n`;
+            xml += `            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${condition}]]></conditionExpression>\n`;
+            xml += `        </sequenceFlow>\n`;
+        } else {
+            xml += `        <sequenceFlow id="${id}" sourceRef="${sourceRef}" targetRef="${targetRef}" />\n`;
+        }
     });
 
     xml += `    </process>

@@ -6,6 +6,7 @@ import { EmailConfig } from '../config/EmailConfig';
 import { TimerConfig } from '../config/TimerConfig';
 import { UserTaskConfig } from '../config/UserTaskConfig';
 import { ServiceTaskConfig } from '../config/ServiceTaskConfig';
+import { GatewayConfig } from '../config/GatewayConfig';
 import { DefaultConfig } from '../config/DefaultConfig';
 
 interface ConfigTabProps {
@@ -71,6 +72,10 @@ export function ConfigTab({ node, onUpdate }: ConfigTabProps) {
                 <TimerConfig config={node.data.config} onUpdate={updateConfig} />
             )}
 
+            {node.type === 'gateway' && (
+                <GatewayConfig config={node.data.config} onUpdate={updateConfig} />
+            )}
+
             {isServiceTask && (
                 <ServiceTaskConfig config={node.data.config} onUpdate={updateConfig} />
             )}
@@ -79,7 +84,7 @@ export function ConfigTab({ node, onUpdate }: ConfigTabProps) {
                 <UserTaskConfig config={node.data.config} onUpdate={updateConfig} />
             )}
 
-            {!['aiAgent', 'email', 'timer', 'task', 'userTask', 'serviceTask'].includes(
+            {!['aiAgent', 'email', 'timer', 'gateway', 'task', 'userTask', 'serviceTask'].includes(
                 node.type || ''
             ) && <DefaultConfig nodeType={node.type || 'unknown'} />}
         </div>

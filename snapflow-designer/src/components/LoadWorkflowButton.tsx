@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 interface LoadWorkflowButtonProps {
-    onLoad: (json: any) => void;
+    onLoad: (json: any, metadata: { name: string; id: string }) => void;
 }
 
 export function LoadWorkflowButton({ onLoad }: LoadWorkflowButtonProps) {
@@ -69,7 +69,7 @@ export function LoadWorkflowButton({ onLoad }: LoadWorkflowButtonProps) {
                                 <button
                                     key={wf.id}
                                     onClick={() => {
-                                        onLoad(wf.jsonState);
+                                        onLoad(wf.jsonState, { name: wf.name, id: wf.id });
                                         setIsOpen(false);
                                     }}
                                     className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-[#FCCF0A]/20 hover:text-[#D41C2C] rounded-sm transition-colors truncate font-medium"

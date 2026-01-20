@@ -82,7 +82,10 @@ function Flow() {
         setSelectedEdge,
         setNodes,
         setEdges,
-        selectedNode, // Get selected node from store
+        selectedNode,
+        workflowMetadata,
+        setWorkflowMetadata,
+        resetWorkflow,
     } = useStore();
 
     // Handler for creating a new process
@@ -91,11 +94,8 @@ function Flow() {
             const confirmed = window.confirm('Are you sure you want to start a new process? Any unsaved changes will be lost.');
             if (!confirmed) return;
         }
-        setNodes([]);
-        setEdges([]);
-        setSelectedNode(null);
-        setSelectedEdge(null);
-    }, [nodes.length, edges.length, setNodes, setEdges, setSelectedNode, setSelectedEdge]);
+        resetWorkflow();
+    }, [nodes.length, edges.length, resetWorkflow]);
 
     const { screenToFlowPosition, toObject } = useReactFlow();
 
@@ -203,7 +203,9 @@ function Flow() {
                     <Panel position="top-left" className="bg-white/95 backdrop-blur-sm p-3 border-t-4 border-[#D41C2C] rounded-sm shadow-xl flex items-center gap-4">
                         <div className="flex flex-col">
                             <h2 className="text-lg font-bold text-gray-900 leading-none">Workflow Designer</h2>
-                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Editing: New Process</span>
+                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                                {workflowMetadata.name ? `Editing: ${workflowMetadata.name} v${workflowMetadata.version}` : 'Editing: New Process'}
+                            </span>
                         </div>
 
                         <div className="h-8 w-[1px] bg-gray-200" />
@@ -228,10 +230,19 @@ function Flow() {
                             </button>
 
                             <LoadWorkflowButton
-                                onLoad={(json: any) => {
+                                onLoad={(json: any, metadata: { name: string; id: string }) => {
                                     const { x, y, zoom } = json.viewport;
                                     setNodes(json.nodes || []);
                                     setEdges(json.edges || []);
+                                    // Extract version from name (e.g., "Expense Approval v3" -> 3)
+                                    const versionMatch = metadata.name.match(/v(\d+)$/);
+                                    const version = versionMatch ? parseInt(versionMatch[1]) : 1;
+                                    const baseName = metadata.name.replace(/\s*v\d+$/, '');
+                                    setWorkflowMetadata({
+                                        name: baseName,
+                                        version: version,
+                                        id: metadata.id,
+                                    });
                                 }}
                             />
 

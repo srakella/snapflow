@@ -84,7 +84,18 @@ export function PropertiesSidebar() {
                 ) : selectedEdge ? (
                     <EdgeData
                         label={(selectedEdge.label as string) || ''}
-                        onUpdate={(label) => updateEdgeData(selectedEdge.id, { label })}
+                        condition={(selectedEdge.data?.condition as string) || ''}
+                        onUpdate={(updates) => {
+                            // updates is { label?: string, data?: { condition?: string } }
+                            // We need to be careful not to wipe out existing data
+                            const currentData = selectedEdge.data || {};
+                            const newData = updates.data ? { ...currentData, ...updates.data } : currentData;
+
+                            updateEdgeData(selectedEdge.id, {
+                                ...updates,
+                                data: newData
+                            });
+                        }}
                     />
                 ) : null}
             </div>

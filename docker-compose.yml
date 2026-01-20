@@ -10,6 +10,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/postgresql:/docker-entrypoint-initdb.d:ro
 
   mongodb:
     image: mongo:7
@@ -47,8 +48,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/snapflow
       SPRING_DATASOURCE_USERNAME: snapflow
       SPRING_DATASOURCE_PASSWORD: snapflow
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/snapflow
     depends_on:
       - postgres
+      - mongodb
 
   snapflow-designer:
     build: ./snapflow-designer
