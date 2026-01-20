@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Shield } from 'lucide-react';
+import { User, Shield, Clock } from 'lucide-react';
 import { UserLookup } from '../shared/UserLookup';
 import { FormSelector } from '../shared/FormSelector';
 import { FormDefinition } from '@/services/formService';
@@ -104,6 +104,22 @@ export function UserTaskData({ nodeId, config, onUpdate, forms, formsLoading }: 
                     </select>
                     <p className="text-[10px] text-gray-400 mt-1">
                         Users in group can "claim" this task.
+                    </p>
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Clock size={12} /> Due Date
+                    </label>
+                    <input
+                        type="text"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#D41C2C]/20 focus:border-[#D41C2C] outline-none placeholder:font-normal placeholder:text-gray-400"
+                        placeholder="P3D, 2024-12-31, or ${dueDate}"
+                        value={config?.dueDate || ''}
+                        onChange={(e) => onUpdate({ ...config, dueDate: e.target.value })}
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">
+                        Duration (P1D) or Date (ISO-8601).
                     </p>
                 </div>
             </div>

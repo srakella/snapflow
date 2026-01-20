@@ -1,15 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, User, Shield, Briefcase, Filter, Search, ArrowRight, Activity } from 'lucide-react';
+import { CheckCircle, Clock, User, Shield, Briefcase, Filter, Search, ArrowRight, Activity, Eye } from 'lucide-react';
+import { TaskExecutionModal } from '@/components/TaskExecutionModal';
 
 // Mock Identity Context
-const MOCK_USERS = [
-    { id: 'jdoe', name: 'John Doe', groups: ['users'] },
-    { id: 'admin', name: 'Admin User', groups: ['admins', 'users', 'managers'] },
-    { id: 'alice', name: 'Alice HR', groups: ['hr', 'users'] },
-    { id: 'bob', name: 'Bob Approver', groups: ['approvers', 'users'] }
-];
+// Mock Identity removed in favor of API fetch
+
 
 interface Task {
     id: string;
@@ -25,15 +22,50 @@ interface Task {
 
 export default function TaskInboxPage() {
     // Current User Context (Simulation of SSO)
-    const [currentUser, setCurrentUser] = useState(MOCK_USERS[0]);
+    // Current User Context (Fetch from DB)
+    const [fetchedUsers, setFetchedUsers] = useState<any[]>([]);
+    const [currentUser, setCurrentUser] = useState<any>(null);
 
     // Task State
     const [tasks, setTasks] = useState<Task[]>([]);
     const [activeTab, setActiveTab] = useState<'my-tasks' | 'group-tasks'>('my-tasks');
     const [loading, setLoading] = useState(false);
 
+    // Modal State
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     // Initial Mock Data Load
+    // Initial Data Load
     useEffect(() => {
+        // Fetch users for SSO simulation
+        const loadUsers = async () => {
+            try {
+                const res = await fetch('http://localhost:8081/api/identity/users');
+                if (res.ok) {
+                    const rawUsers = await res.json();
+                    // Map backend User to local shape
+                    const mapped = rawUsers
+                        .filter((u: any) => u.active !== false)
+                        .map((u: any) => ({
+                            id: u.username, // Use username for assignments
+                            name: u.fullName,
+                            groups: (u.groups && u.groups.length > 0)
+                                ? u.groups.map((g: any) => g.name || g.id)
+                                : (['admin'].includes(u.username) ? ['admins', 'managers', 'users'] :
+                                    ['alice'].includes(u.username) ? ['hr', 'users'] :
+                                        ['bob'].includes(u.username) ? ['approvers', 'users'] : ['users'])
+                        }));
+                    setFetchedUsers(mapped);
+                    // Default to first user if not set
+                    if (mapped.length > 0 && !currentUser) {
+                        setCurrentUser(mapped[0]);
+                    }
+                }
+            } catch (e) { console.error("Failed to load users", e); }
+        };
+        loadUsers();
+
         // In real app, fetch from API. Here we mock some tasks.
         const mockTasks: Task[] = [
             {
@@ -42,6 +74,7 @@ export default function TaskInboxPage() {
                 description: 'Annual leave request for Sarah Smith (5 days)',
                 candidateGroups: ['managers', 'approvers'],
                 created: '2023-10-25T10:00:00Z',
+                due: '2023-10-30T17:00:00Z',
                 priority: 50
             },
             {
@@ -65,11 +98,11 @@ export default function TaskInboxPage() {
     }, []);
 
     // Filter Logic
-    const myTasks = tasks.filter(t => t.assignee === currentUser.id);
-    const groupTasks = tasks.filter(t =>
+    const myTasks = currentUser ? tasks.filter(t => t.assignee === currentUser.id) : [];
+    const groupTasks = currentUser ? tasks.filter(t =>
         !t.assignee && // Not assigned yet
         t.candidateGroups?.some(chatGroup => currentUser.groups.includes(chatGroup))
-    );
+    ) : [];
 
     const handleClaim = (taskId: string) => {
         setTasks(tasks.map(t =>
@@ -78,10 +111,16 @@ export default function TaskInboxPage() {
         // TODO: Call API to claim task
     };
 
-    const handleComplete = (taskId: string) => {
-        // TODO: Call API to complete task
+    const handleViewTask = (task: Task) => {
+        setSelectedTask(task);
+        setIsModalOpen(true);
+    };
+
+    const handleCompleteFromModal = (taskId: string, data: any) => {
+        // TODO: Call API to complete task with data
+        console.log('Completing task with data:', data);
         setTasks(tasks.filter(t => t.id !== taskId));
-        alert('Task Completed! (Mock)');
+        alert('Task Submitted Successfully!');
     };
 
     const handleUnclaim = (taskId: string) => {
@@ -101,11 +140,12 @@ export default function TaskInboxPage() {
                 <div className="flex items-center gap-2">
                     <span className="text-slate-400">Simulate User:</span>
                     <select
-                        className="bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-white outline-none"
-                        value={currentUser.id}
-                        onChange={(e) => setCurrentUser(MOCK_USERS.find(u => u.id === e.target.value) || currentUser)}
+                        className="bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-white outline-none max-w-xs"
+                        value={currentUser?.id || ''}
+                        onChange={(e) => setCurrentUser(fetchedUsers.find(u => u.id === e.target.value) || currentUser)}
                     >
-                        {MOCK_USERS.map(u => (
+                        {fetchedUsers.length === 0 && <option>Loading users...</option>}
+                        {fetchedUsers.map(u => (
                             <option key={u.id} value={u.id}>{u.name} ({u.groups.length} groups)</option>
                         ))}
                     </select>
@@ -120,8 +160,14 @@ export default function TaskInboxPage() {
                             <Briefcase className="text-[#D41C2C]" /> Task Inbox
                         </h1>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>You are logged in as <strong>{currentUser.name}</strong></span>
-                            <span className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">{currentUser.groups.join(', ')}</span>
+                            {currentUser ? (
+                                <>
+                                    <span>You are logged in as <strong>{currentUser.name}</strong></span>
+                                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">{currentUser.groups.join(', ')}</span>
+                                </>
+                            ) : (
+                                <span>Please select a user to view tasks</span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -166,15 +212,20 @@ export default function TaskInboxPage() {
                                             <p className="text-gray-600 text-sm mb-3">{task.description}</p>
                                             <div className="flex items-center gap-4 text-xs text-gray-400">
                                                 <span className="flex items-center gap-1"><Clock size={12} /> Created: {new Date(task.created).toLocaleDateString()}</span>
+                                                {task.due && (
+                                                    <span className={`flex items-center gap-1 border px-1.5 rounded ${new Date(task.due) < new Date() ? 'text-red-600 border-red-200 bg-red-50 font-bold' : 'text-orange-600 border-orange-200 bg-orange-50'}`}>
+                                                        <Clock size={12} /> Due: {new Date(task.due).toLocaleDateString()}
+                                                    </span>
+                                                )}
                                                 <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded">Priority: {task.priority}</span>
                                             </div>
                                         </div>
                                         <div className="flex flex-col gap-2">
                                             <button
-                                                onClick={() => handleComplete(task.id)}
-                                                className="bg-[#D41C2C] text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#B81926] shadow-sm flex items-center gap-2"
+                                                onClick={() => handleViewTask(task)}
+                                                className="bg-white border text-gray-700 px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-50 hover:text-gray-900 shadow-sm flex items-center gap-2 transition-all"
                                             >
-                                                Complete Task <ArrowRight size={16} />
+                                                <Eye size={16} /> View
                                             </button>
                                             {/* Optional: Return to pool */}
                                             <button
@@ -224,6 +275,13 @@ export default function TaskInboxPage() {
                     )}
                 </div>
             </div>
-        </div>
+
+            <TaskExecutionModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                task={selectedTask}
+                onComplete={handleCompleteFromModal}
+            />
+        </div >
     );
 }

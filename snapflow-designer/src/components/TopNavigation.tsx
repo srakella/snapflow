@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, FileText, Settings2, Activity, Rocket, Home, Briefcase, LogOut, Zap } from 'lucide-react';
+import { LayoutGrid, FileText, Settings2, Activity, Rocket, Home, Briefcase, LogOut, Zap, Users } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 import { useStore } from '../store/useStore';
@@ -33,6 +33,7 @@ export function TopNavigation() {
         { path: '/forms/designer', label: 'Forms', icon: <FileText size={18} />, allowed: hasRole('DESIGNER') },
         { path: '/tasks', label: 'Tasks', icon: <Briefcase size={18} />, allowed: hasRole('USER') || hasRole('DESIGNER') },
         { path: '/dashboard', label: 'Monitor', icon: <Activity size={18} />, allowed: hasRole('USER') || hasRole('ADMIN') },
+        { path: '/admin/users', label: 'Admin', icon: <Users size={18} />, allowed: hasRole('ADMIN') },
     ];
 
     return (

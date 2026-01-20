@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
-import { AVAILABLE_USERS, User } from '@/constants/users';
+import React, { useState, useEffect } from 'react';
+
+interface User {
+    id: string;
+    name: string;
+    username: string;
+}
 
 interface UserLookupProps {
     value: string;
@@ -8,12 +13,32 @@ interface UserLookupProps {
 }
 
 export function UserLookup({ value, onChange, placeholder = 'Search users...' }: UserLookupProps) {
+    const [users, setUsers] = useState<User[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
 
-    const filteredUsers = AVAILABLE_USERS.filter(
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const res = await fetch('http://localhost:8081/api/identity/users');
+                if (res.ok) {
+                    const rawUsers = await res.json();
+                    setUsers(rawUsers
+                        .filter((u: any) => u.active !== false)
+                        .map((u: any) => ({
+                            id: u.username,
+                            name: u.fullName,
+                            username: u.username
+                        })));
+                }
+            } catch (e) { console.error(e); }
+        };
+        fetchUsers();
+    }, []);
+
+    const filteredUsers = users.filter(
         (u) =>
             u.name.toLowerCase().includes(value.toLowerCase()) ||
-            u.id.toLowerCase().includes(value.toLowerCase())
+            u.username.toLowerCase().includes(value.toLowerCase())
     );
 
     return (

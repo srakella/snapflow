@@ -19,6 +19,9 @@ public class User {
     private String email;
     private String avatarUrl;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_groups", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "group_id"))
     private Set<UserGroup> groups = new HashSet<>();
@@ -80,5 +83,13 @@ public class User {
 
     public void setGroups(Set<UserGroup> groups) {
         this.groups = groups;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

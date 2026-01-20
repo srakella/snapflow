@@ -27,4 +27,22 @@ public class IdentityController {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
+
+    @PostMapping("/users")
+    public User saveUser(@RequestBody User user) {
+        return userRepository.save(user);
+    }
+
+    @DeleteMapping("/users/{id}")
+    public void deleteUser(@PathVariable String id) {
+        userRepository.deleteById(id);
+    }
+
+    @PatchMapping("/users/{id}/status")
+    public User toggleStatus(@PathVariable String id, @RequestBody boolean isActive) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setActive(isActive);
+        return userRepository.save(user);
+    }
 }
