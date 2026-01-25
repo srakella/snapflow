@@ -13,8 +13,9 @@ import {
     useReactFlow,
     NodeTypes,
     MarkerType,
+    ConnectionLineType,
 } from '@xyflow/react';
-import { Rocket, LayoutGrid, Home, FileText, FilePlus, MessageSquare, Save } from 'lucide-react';
+import { Rocket, LayoutGrid, Home, FileText, FilePlus, MessageSquare, Save, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import '@xyflow/react/dist/style.css';
 
@@ -37,6 +38,8 @@ import { UserTaskNode } from './nodes/UserTaskNode';
 import { ServiceTaskNode } from './nodes/ServiceTaskNode';
 import { RulesEngineNode } from './nodes/RulesEngineNode';
 import { DynamicRouterNode } from './nodes/DynamicRouterNode';
+import { AiSidebar } from './ai/AiSidebar';
+import { ConfirmationModal } from './ConfirmationModal';
 import CommentsPanel from './CommentsPanel';
 
 const nodeTypes: NodeTypes = {
@@ -56,17 +59,21 @@ const nodeTypes: NodeTypes = {
 const defaultEdgeOptions = {
     type: 'smoothstep',
     animated: false,
+    pathOptions: {
+        borderRadius: 20,
+    },
     style: {
         strokeWidth: 2,
-        stroke: '#6b7280',
-        strokeLinecap: 'round' as const,
+        stroke: '#475569', // slate-600
     },
     markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#6b7280',
-        width: 16,
-        height: 16,
+        color: '#475569', // slate-600
+        width: 12,
+        height: 12,
     },
+    interactionWidth: 20,
+    deletable: true,
 };
 
 function Flow() {
@@ -88,13 +95,21 @@ function Flow() {
         resetWorkflow,
     } = useStore();
 
+    const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
+    const [isAiSidebarOpen, setIsAiSidebarOpen] = React.useState(false);
+    const [isNewProcessModalOpen, setIsNewProcessModalOpen] = React.useState(false);
+
+    const confirmNewProcess = useCallback(() => {
+        resetWorkflow();
+    }, [resetWorkflow]);
+
     // Handler for creating a new process
     const handleNewProcess = useCallback(() => {
         if (nodes.length > 0 || edges.length > 0) {
-            const confirmed = window.confirm('Are you sure you want to start a new process? Any unsaved changes will be lost.');
-            if (!confirmed) return;
+            setIsNewProcessModalOpen(true);
+        } else {
+            resetWorkflow();
         }
-        resetWorkflow();
     }, [nodes.length, edges.length, resetWorkflow]);
 
     const { screenToFlowPosition, toObject } = useReactFlow();
@@ -143,7 +158,7 @@ function Flow() {
     }, [setSelectedNode, setSelectedEdge]);
 
 
-    const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
+
 
 
     const handleDeploy = async (name: string) => {
@@ -186,9 +201,10 @@ function Flow() {
                     snapToGrid={true}
                     snapGrid={[15, 15]}
                     connectionRadius={30}
+                    connectionLineType={ConnectionLineType.SmoothStep}
                     connectionLineStyle={{
                         strokeWidth: 2,
-                        stroke: '#6b7280',
+                        stroke: '#475569',
                         strokeDasharray: '5,5',
                     }}
                     minZoom={0.2}
@@ -238,6 +254,15 @@ function Flow() {
                             />
 
                             <button
+                                onClick={() => setIsAiSidebarOpen(!isAiSidebarOpen)}
+                                className={`flex items-center gap-2 px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 group uppercase tracking-wide ${isAiSidebarOpen ? 'bg-indigo-700 text-white' : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white'}`}
+                                title="Generate with AI"
+                            >
+                                <Sparkles size={16} />
+                                AI Magic
+                            </button>
+
+                            <button
                                 onClick={() => setIsSaveModalOpen(true)}
                                 className="flex items-center gap-2 bg-[#D41C2C] text-white px-4 py-1.5 rounded-sm text-sm font-bold shadow-sm hover:bg-[#B81926] hover:shadow-md transition-all active:scale-95 group uppercase tracking-wide"
                             >
@@ -258,6 +283,16 @@ function Flow() {
             </div >
 
             <PropertiesSidebar />
+            <AiSidebar isOpen={isAiSidebarOpen} onClose={() => setIsAiSidebarOpen(false)} />
+
+            <ConfirmationModal
+                isOpen={isNewProcessModalOpen}
+                onClose={() => setIsNewProcessModalOpen(false)}
+                onConfirm={confirmNewProcess}
+                title="Start New Process?"
+                message="This will clear your current workflow canvas. Any unsaved changes will be permanently lost. Are you sure you want to continue?"
+                confirmText="Start New"
+            />
         </div >
     );
 }
