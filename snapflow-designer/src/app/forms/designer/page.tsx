@@ -4,359 +4,559 @@ import React, { useState } from 'react';
 import {
     DndContext,
     DragEndEvent,
+    DragStartEvent,
     DragOverEvent,
     DragOverlay,
-    DragStartEvent,
-    closestCenter,
+    useDraggable,
+    useDroppable,
     PointerSensor,
     useSensor,
     useSensors,
+    closestCenter,
 } from '@dnd-kit/core';
 import {
     SortableContext,
-    arrayMove,
     useSortable,
     verticalListSortingStrategy,
     horizontalListSortingStrategy,
+    arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useSearchParams } from 'next/navigation';
 import {
-    Save, Home, Layout, Eye, FileText, X, Trash2, GripVertical, FolderOpen,
-    Type, Hash, Calendar, Mail, Phone, List, CheckSquare, AlignLeft, Settings2, Plus,
-    User, Paperclip, PenTool, Sparkles, Filter, Shield, Activity, Database, Copy
+    Save, Eye, FileText, X, Trash2, GripVertical, FolderOpen,
+    Type, Hash, Calendar, List, CheckSquare, AlignLeft, Settings2, Plus,
+    User, Paperclip, PenTool, FilePlus, ChevronDown, ToggleLeft,
+    Rows, Columns, Clock, FileType, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { useToast } from '@/components/ui/Toast';
+import { FormPreview } from './FormPreview';
+import { FormRow, FormField, FieldType, OptionItem, ValidationRules } from './types';
 
-// --- Types ---
-
-type FieldType = 'text' | 'number' | 'date' | 'email' | 'phone' | 'select' | 'checkbox' | 'radio' | 'toggle' | 'textarea' | 'people' | 'file' | 'signature';
-
-interface ValidationRules {
-    required?: boolean;
-    min?: number;
-    max?: number;
-    minLength?: number;
-    maxLength?: number;
-    pattern?: string;
-    customMessage?: string;
-}
-
-interface LogicRules {
-    visibility?: string; // e.g., "status == 'Active'"
-    disabled?: string;
-}
-
-interface DataConfig {
-    options?: string[]; // For static dropdowns
-    dataSource?: 'static' | 'api';
-    apiEndpoint?: string;
-    parentFieldKey?: string; // For cascading
-}
-
-interface FormField {
-    id: string;
-    type: FieldType;
-    label: string;
-    key: string;
-    placeholder?: string;
-    helpText?: string;
-    width: 1 | 2 | 3 | 4;
-    validation: ValidationRules;
-    logic: LogicRules;
-    data: DataConfig;
-    showOnStart?: boolean;
-}
-
-interface FormRow {
-    id: string;
-    fields: FormField[];
-}
-
-// --- Templates ---
-
+// ============================================================================
+// FIELD TEMPLATES
+// ============================================================================
 const FIELD_TEMPLATES = [
     { type: 'text' as FieldType, icon: Type, label: 'Text', color: 'bg-blue-500' },
-    { type: 'textarea' as FieldType, icon: AlignLeft, label: 'Area', color: 'bg-indigo-500' },
-    { type: 'number' as FieldType, icon: Hash, label: 'Number', color: 'bg-green-500' },
-    { type: 'select' as FieldType, icon: List, label: 'Select', color: 'bg-yellow-500' },
-    { type: 'checkbox' as FieldType, icon: CheckSquare, label: 'Check', color: 'bg-teal-500' },
-    { type: 'radio' as FieldType, icon: Filter, label: 'Radio', color: 'bg-purple-500' },
-    { type: 'toggle' as FieldType, icon: Activity, label: 'Switch', color: 'bg-cyan-500' },
+    { type: 'textarea' as FieldType, icon: AlignLeft, label: 'Text Area', color: 'bg-indigo-500' },
+    { type: 'number' as FieldType, icon: Hash, label: 'Number', color: 'bg-emerald-500' },
+    { type: 'select' as FieldType, icon: List, label: 'Dropdown', color: 'bg-amber-500' },
+    { type: 'checkbox' as FieldType, icon: CheckSquare, label: 'Checkbox', color: 'bg-teal-500' },
+    { type: 'radio' as FieldType, icon: ChevronDown, label: 'Radio', color: 'bg-purple-500' },
+    { type: 'toggle' as FieldType, icon: ToggleLeft, label: 'Toggle', color: 'bg-cyan-500' },
     { type: 'date' as FieldType, icon: Calendar, label: 'Date', color: 'bg-orange-500' },
-    { type: 'people' as FieldType, icon: User, label: 'People', color: 'bg-pink-600' },
-    { type: 'file' as FieldType, icon: Paperclip, label: 'File', color: 'bg-slate-600' },
-    { type: 'signature' as FieldType, icon: PenTool, label: 'Sign', color: 'bg-violet-600' },
+    { type: 'people' as FieldType, icon: User, label: 'People', color: 'bg-pink-500' },
+    { type: 'file' as FieldType, icon: Paperclip, label: 'File', color: 'bg-slate-500' },
+    { type: 'signature' as FieldType, icon: PenTool, label: 'Signature', color: 'bg-violet-500' },
 ];
 
-// --- Components ---
-
-function SortableField({ field, rowId, isSelected, onClick, onDelete }: {
-    field: FormField;
-    rowId: string;
-    isSelected: boolean;
-    onClick: () => void;
-    onDelete: () => void;
-}) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
-    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-    const template = FIELD_TEMPLATES.find(t => t.type === field.type);
-    const Icon = template?.icon || Type;
-
-    const widthClass = field.width === 1 ? 'col-span-1' : field.width === 2 ? 'col-span-2' : field.width === 3 ? 'col-span-3' : 'col-span-4';
+// ============================================================================
+// DRAGGABLE PALETTE ITEM
+// ============================================================================
+function PaletteItem({ template }: { template: typeof FIELD_TEMPLATES[0] }) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `palette-${template.type}`,
+        data: { type: 'palette', fieldType: template.type },
+    });
+    const Icon = template.icon;
 
     return (
-        <div ref={setNodeRef} style={style} onClick={onClick} className={`${widthClass}`}>
-            <div className={`group h-full bg-white border-2 rounded-lg p-3 cursor-pointer transition-all ${isSelected ? 'border-[#D41C2C] shadow-lg ring-2 ring-[#D41C2C]/20 relative z-10' : 'border-slate-200 hover:border-slate-300'
-                }`}>
-                <div className="flex items-start gap-2">
-                    <div {...attributes} {...listeners} className="cursor-move mt-0.5 text-slate-400 hover:text-[#D41C2C]">
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={`flex items-center gap-2 p-2.5 bg-white border border-gray-200 rounded-lg cursor-grab hover:border-[#D41C2C] hover:shadow-md transition-all ${isDragging ? 'opacity-50' : ''}`}
+        >
+            <div className={`p-1.5 rounded ${template.color} text-white`}>
+                <Icon size={14} strokeWidth={2.5} />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">{template.label}</span>
+        </div>
+    );
+}
+
+// ============================================================================
+// FIELD IN ROW - Sortable field within a row with resize handle
+// ============================================================================
+function RowField({ field, isSelected, onSelect, onDelete, onResize }: {
+    field: FormField;
+    isSelected: boolean;
+    onSelect: () => void;
+    onDelete: () => void;
+    onResize: (width: number) => void;
+}) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: field.id,
+        data: { type: 'field', field }
+    });
+    const template = FIELD_TEMPLATES.find(t => t.type === field.type);
+    const Icon = template?.icon || Type;
+    const [isResizing, setIsResizing] = useState(false);
+    const fieldRef = React.useRef<HTMLDivElement>(null);
+    const rowRef = React.useRef<HTMLDivElement | null>(null);
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition: isResizing ? 'none' : transition,
+        opacity: isDragging ? 0.5 : 1,
+        width: `${field.width}%`,
+        flexShrink: 0,
+    };
+
+    const handleResizeStart = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setIsResizing(true);
+
+        const startX = e.clientX;
+        const startWidth = field.width;
+
+        // Get parent row width for percentage calculation
+        const parentRow = fieldRef.current?.parentElement;
+        const rowWidth = parentRow?.offsetWidth || 800;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaPercent = (deltaX / rowWidth) * 100;
+            const newWidth = Math.min(100, Math.max(10, Math.round(startWidth + deltaPercent)));
+            onResize(newWidth);
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    return (
+        <div
+            ref={(el) => { setNodeRef(el); fieldRef.current = el; }}
+            style={style}
+            className="p-1 relative group"
+        >
+            <div
+                onClick={onSelect}
+                className={`h-full bg-white rounded-lg border-2 p-3 cursor-pointer transition-all
+                    ${isSelected ? 'border-[#D41C2C] shadow-lg ring-2 ring-[#D41C2C]/20' : 'border-gray-200 hover:border-gray-300'}`}
+            >
+                <div className="flex items-center gap-2">
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab active:cursor-grabbing p-1 -ml-1 rounded hover:bg-gray-100 text-gray-400 hover:text-[#D41C2C] transition-colors"
+                        title="Drag to reorder"
+                    >
                         <GripVertical size={16} />
                     </div>
-                    <div className={`p-1.5 rounded ${template?.color} flex-shrink-0`}>
-                        <Icon className="text-white" size={14} strokeWidth={2.5} />
+                    <div className={`p-1.5 rounded ${template?.color}`}>
+                        <Icon size={12} className="text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-slate-900 truncate">
+                        <div className="text-sm font-semibold text-gray-800 truncate">
                             {field.label}
-                            {field.validation?.required && <span className="text-[#D41C2C]">*</span>}
-                            {field.showOnStart && <span className="text-[10px] ml-2 text-purple-600 bg-purple-50 px-1 rounded border border-purple-200">Start</span>}
-                            {field.logic?.visibility && <span className="text-[10px] ml-2 text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">Logic</span>}
+                            {field.validation?.required && <span className="text-red-500 ml-0.5">*</span>}
                         </div>
-                        <div className="text-xs text-slate-500 font-mono truncate">{field.key}</div>
+                        <div className="text-[10px] text-gray-400 font-mono truncate">{field.key}</div>
                     </div>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 rounded"
-                    >
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500 font-semibold">{field.width}%</span>
+                        <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 text-gray-400 hover:text-red-500">
+                            <Trash2 size={12} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Resize Handle */}
+            <div
+                onMouseDown={handleResizeStart}
+                className={`absolute right-0 top-1 bottom-1 w-2 cursor-ew-resize rounded-r 
+                    ${isResizing ? 'bg-[#D41C2C]' : 'bg-transparent group-hover:bg-gray-300 hover:!bg-[#D41C2C]'}
+                    transition-colors`}
+            />
+        </div>
+    );
+}
+
+// ============================================================================
+// DROPPABLE ROW - A row that accepts field drops
+// ============================================================================
+function DroppableRow({ row, children, onAddField, onDeleteRow }: {
+    row: FormRow;
+    children: React.ReactNode;
+    onAddField: (rowId: string, type: FieldType) => void;
+    onDeleteRow: () => void;
+}) {
+    // Use a unique ID for droppable that won't conflict with sortable
+    const droppableId = `droppable-row-${row.id}`;
+
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+        id: droppableId,
+        data: { type: 'row', rowId: row.id }
+    });
+
+    const {
+        attributes,
+        listeners,
+        setNodeRef: setSortableRef,
+        transform,
+        transition
+    } = useSortable({
+        id: `sortable-row-${row.id}`,
+        data: { type: 'row-sort', rowId: row.id }
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    // Combine refs
+    const setRefs = React.useCallback((node: HTMLDivElement | null) => {
+        setSortableRef(node);
+        setDroppableRef(node);
+    }, [setSortableRef, setDroppableRef]);
+
+    return (
+        <div ref={setRefs} style={style} className="group">
+            <div
+                className={`bg-white rounded-xl border-2 transition-all ${isOver ? 'border-[#D41C2C] bg-red-50/30' : 'border-gray-200 hover:border-gray-300'}`}
+            >
+                {/* Row Header */}
+                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50/50 rounded-t-xl">
+                    <div className="flex items-center gap-2">
+                        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-[#D41C2C]">
+                            <GripVertical size={16} />
+                        </div>
+                        <Rows size={14} className="text-gray-400" />
+                        <span className="text-xs font-medium text-gray-500">
+                            Row • {row.fields.length} field{row.fields.length !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+                    <button onClick={onDeleteRow} className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity">
                         <Trash2 size={14} />
                     </button>
                 </div>
+
+                {/* Row Content */}
+                <div className="p-2 min-h-[60px]">
+                    {row.fields.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-gray-400 text-xs py-4 border-2 border-dashed border-gray-200 rounded-lg">
+                            <Columns size={14} className="mr-2" /> Drag fields here
+                        </div>
+                    ) : (
+                        <div className="flex flex-wrap">
+                            {children}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 }
 
-function SortableRow({ row, selectedField, onSelectField, onDeleteField, onAddField, onDeleteRow }: {
-    row: FormRow;
-    selectedField: FormField | null;
-    onSelectField: (field: FormField) => void;
-    onDeleteField: (rowId: string, fieldId: string) => void;
-    onAddField: (rowId: string, type: FieldType) => void;
-    onDeleteRow: (rowId: string) => void;
-}) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
-    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+// ============================================================================
+// VALIDATION PANEL - Per-type validation settings
+// ============================================================================
+function ValidationPanel({ field, onUpdate }: { field: FormField; onUpdate: (v: Partial<ValidationRules>) => void }) {
+    const validation = field.validation || {};
 
     return (
-        <div ref={setNodeRef} style={style} className="bg-slate-50 border-2 border-slate-200 rounded-lg p-4 group hover:border-slate-300 transition-all">
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    <div {...attributes} {...listeners} className="cursor-move text-slate-400 hover:text-[#D41C2C]">
-                        <GripVertical size={18} />
+        <div className="space-y-4">
+            {/* Required */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm font-medium text-gray-700">Required</span>
+                <ToggleButton checked={validation.required || false} onChange={(v) => onUpdate({ required: v })} />
+            </div>
+
+            {/* TEXT VALIDATIONS */}
+            {(field.type === 'text' || field.type === 'textarea' || field.type === 'email' || field.type === 'phone') && (
+                <>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Min Length</label>
+                            <input type="number" value={validation.minLength || ''} onChange={(e) => onUpdate({ minLength: parseInt(e.target.value) || undefined })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="0" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Max Length</label>
+                            <input type="number" value={validation.maxLength || ''} onChange={(e) => onUpdate({ maxLength: parseInt(e.target.value) || undefined })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="∞" />
+                        </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-500 uppercase">Row • {row.fields.length} fields</span>
-                </div>
-                <button onClick={() => onDeleteRow(row.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all">
-                    <Trash2 size={16} />
-                </button>
-            </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Pattern (Regex)</label>
+                        <input type="text" value={validation.pattern || ''} onChange={(e) => onUpdate({ pattern: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono" placeholder="^[A-Z].*" />
+                    </div>
+                </>
+            )}
 
-            <div className="grid grid-cols-4 gap-3 mb-3">
-                <SortableContext items={row.fields.map(f => f.id)} strategy={horizontalListSortingStrategy}>
-                    {row.fields.map((field) => (
-                        <SortableField
-                            key={field.id}
-                            field={field}
-                            rowId={row.id}
-                            isSelected={selectedField?.id === field.id}
-                            onClick={() => onSelectField(field)}
-                            onDelete={() => onDeleteField(row.id, field.id)}
-                        />
-                    ))}
-                </SortableContext>
-            </div>
+            {/* NUMBER VALIDATIONS */}
+            {field.type === 'number' && (
+                <>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Min Value</label>
+                            <input type="number" value={validation.min ?? ''} onChange={(e) => onUpdate({ min: parseFloat(e.target.value) || undefined })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Max Value</label>
+                            <input type="number" value={validation.max ?? ''} onChange={(e) => onUpdate({ max: parseFloat(e.target.value) || undefined })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Decimal Places</label>
+                            <input type="number" value={validation.decimalPlaces ?? ''} onChange={(e) => onUpdate({ decimalPlaces: parseInt(e.target.value) || undefined })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Any" />
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-xs font-medium text-gray-600">Allow Negative</span>
+                            <ToggleButton checked={validation.allowNegative ?? true} onChange={(v) => onUpdate({ allowNegative: v })} />
+                        </div>
+                    </div>
+                </>
+            )}
 
-            {/* Quick Add row of small icons */}
-            <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
-                {FIELD_TEMPLATES.map((template) => {
-                    const Icon = template.icon;
-                    return (
-                        <button
-                            key={template.type}
-                            onClick={() => onAddField(row.id, template.type)}
-                            className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border border-slate-200 rounded hover:border-[#D41C2C] hover:bg-red-50 transition-all text-[10px] font-bold text-slate-600 hover:text-[#D41C2C]"
-                            title={`Add ${template.label}`}
-                        >
-                            <Icon size={12} />
-                            {template.label}
-                        </button>
-                    );
-                })}
+            {/* DATE VALIDATIONS */}
+            {field.type === 'date' && (
+                <>
+                    <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="flex items-center gap-2">
+                            <Clock size={14} className="text-amber-600" />
+                            <span className="text-sm font-medium text-amber-800">Block Past Dates</span>
+                        </div>
+                        <ToggleButton checked={validation.disablePastDates || false} onChange={(v) => onUpdate({ disablePastDates: v })} />
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2">
+                            <Clock size={14} className="text-blue-600" />
+                            <span className="text-sm font-medium text-blue-800">Block Future Dates</span>
+                        </div>
+                        <ToggleButton checked={validation.disableFutureDates || false} onChange={(v) => onUpdate({ disableFutureDates: v })} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Min Date</label>
+                            <input type="date" value={validation.minDate || ''} onChange={(e) => onUpdate({ minDate: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Max Date</label>
+                            <input type="date" value={validation.maxDate || ''} onChange={(e) => onUpdate({ maxDate: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Timezone</label>
+                        <select value={validation.timezone || ''} onChange={(e) => onUpdate({ timezone: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                            <option value="">User's Local Timezone</option>
+                            <option value="UTC">UTC</option>
+                            <option value="America/New_York">Eastern (ET)</option>
+                            <option value="America/Chicago">Central (CT)</option>
+                            <option value="America/Denver">Mountain (MT)</option>
+                            <option value="America/Los_Angeles">Pacific (PT)</option>
+                            <option value="Europe/London">London (GMT/BST)</option>
+                            <option value="Asia/Tokyo">Tokyo (JST)</option>
+                        </select>
+                    </div>
+                </>
+            )}
+
+            {/* FILE VALIDATIONS */}
+            {field.type === 'file' && (
+                <>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Accepted File Types</label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'png', 'gif'].map(ext => {
+                                const isSelected = validation.acceptedTypes?.includes(ext);
+                                return (
+                                    <button
+                                        key={ext}
+                                        onClick={() => {
+                                            const current = validation.acceptedTypes || [];
+                                            const updated = isSelected ? current.filter(t => t !== ext) : [...current, ext];
+                                            onUpdate({ acceptedTypes: updated.length > 0 ? updated : undefined });
+                                        }}
+                                        className={`px-2 py-1 text-xs font-mono rounded border transition-colors ${isSelected ? 'bg-[#D41C2C] text-white border-[#D41C2C]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                    >
+                                        .{ext}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Max File Size (MB)</label>
+                            <input type="number" value={validation.maxFileSize || ''} onChange={(e) => onUpdate({ maxFileSize: parseInt(e.target.value) || undefined })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="10" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Max Files</label>
+                            <input type="number" value={validation.maxFiles || ''} onChange={(e) => onUpdate({ maxFiles: parseInt(e.target.value) || undefined })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="1" />
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Custom Error Message */}
+            <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Custom Error Message</label>
+                <input type="text" value={validation.customMessage || ''} onChange={(e) => onUpdate({ customMessage: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="Please check this field" />
             </div>
         </div>
     );
 }
 
-// --- Main Designer Component ---
+// Toggle Button Component
+function ToggleButton({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+    return (
+        <button onClick={() => onChange(!checked)} className={`w-10 h-5 rounded-full transition-colors relative ${checked ? 'bg-[#D41C2C]' : 'bg-gray-300'}`}>
+            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </button>
+    );
+}
 
-export default function EnterpriseFormDesigner() {
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+export default function ProfessionalFormDesigner() {
     const [formName, setFormName] = useState('Untitled Form');
     const [rows, setRows] = useState<FormRow[]>([]);
     const [selectedField, setSelectedField] = useState<FormField | null>(null);
     const [previewMode, setPreviewMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [activeId, setActiveId] = useState<string | null>(null);
-    const [settingsTab, setSettingsTab] = useState<'general' | 'validation' | 'logic' | 'data'>('general');
-    const [isAIGenerating, setIsAIGenerating] = useState(false);
+    const [settingsTab, setSettingsTab] = useState<'general' | 'validation' | 'options'>('general');
+    const [isNewFormModalOpen, setIsNewFormModalOpen] = useState(false);
     const [showLoadModal, setShowLoadModal] = useState(false);
     const [savedForms, setSavedForms] = useState<any[]>([]);
+    const { showToast, ToastComponent } = useToast();
 
-    // Workflow Context
-    const searchParams = useSearchParams();
-    const [upstreamVariables, setUpstreamVariables] = useState<any[]>([]);
-    const [isLoadingContext, setIsLoadingContext] = useState(false);
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-    // Load Context and Form on Mount
-    const handleLoadForm = (form: any) => {
-        setFormName(form.name);
+    // ========================================================================
+    // DRAG & DROP
+    // ========================================================================
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over) return;
 
-        let loadedRows: FormRow[] = [];
-        if (Array.isArray(form.schema)) {
-            // Check if items are rows (have 'fields' prop) or fields (have 'type' prop)
-            // If empty, default to empty rows
-            if (form.schema.length === 0) {
-                loadedRows = [];
-            } else {
-                const firstItem = form.schema[0];
-                if (firstItem && typeof firstItem === 'object' && 'fields' in firstItem) {
-                    // It's rows
-                    loadedRows = (form.schema as FormRow[]).map(row => ({
-                        ...row,
-                        fields: row.fields.map(f => ({
-                            ...f,
-                            validation: f.validation || {},
-                            logic: f.logic || {},
-                            data: f.data || {}
-                        }))
+        const activeData = active.data.current;
+        const overId = over.id as string;
+
+        // Dropping from palette onto a row
+        if (activeData?.type === 'palette' && overId.startsWith('droppable-row-')) {
+            const rowId = overId.replace('droppable-row-', '');
+            const fieldType = activeData.fieldType as FieldType;
+            addFieldToRow(rowId, fieldType);
+        }
+
+        // Reordering rows
+        if (activeData?.type === 'row-sort' && over.data.current?.type === 'row-sort') {
+            const activeRowId = activeData.rowId;
+            const overRowId = over.data.current.rowId;
+            const oldIndex = rows.findIndex(r => r.id === activeRowId);
+            const newIndex = rows.findIndex(r => r.id === overRowId);
+            if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                setRows(arrayMove(rows, oldIndex, newIndex));
+            }
+        }
+
+        // Reordering fields within/between rows
+        if (activeData?.type === 'field') {
+            const sourceRowId = rows.find(r => r.fields.some(f => f.id === active.id))?.id;
+            let targetRowId = over.data.current?.rowId || rows.find(r => r.fields.some(f => f.id === over.id))?.id;
+
+            if (sourceRowId && targetRowId) {
+                const activeField = rows.flatMap(r => r.fields).find(f => f.id === active.id);
+                if (!activeField) return;
+
+                if (sourceRowId === targetRowId) {
+                    // Same row - reorder
+                    setRows(rows.map(row => {
+                        if (row.id === sourceRowId) {
+                            const oldIndex = row.fields.findIndex(f => f.id === active.id);
+                            const newIndex = row.fields.findIndex(f => f.id === over.id);
+                            if (oldIndex !== -1 && newIndex !== -1) {
+                                return { ...row, fields: arrayMove(row.fields, oldIndex, newIndex) };
+                            }
+                        }
+                        return row;
                     }));
                 } else {
-                    // It's a flat list of fields (from curl), wrap in single row
-                    // Generate IDs for fields if missing? The curled fields have IDs.
-                    loadedRows = [{
-                        id: 'row_imported',
-                        fields: (form.schema as FormField[]).map(f => ({
-                            ...f,
-                            validation: f.validation || {},
-                            logic: f.logic || {},
-                            data: f.data || {}
-                        }))
-                    }];
+                    // Move between rows
+                    setRows(rows.map(row => {
+                        if (row.id === sourceRowId) {
+                            return { ...row, fields: row.fields.filter(f => f.id !== active.id) };
+                        }
+                        if (row.id === targetRowId) {
+                            return { ...row, fields: [...row.fields, activeField] };
+                        }
+                        return row;
+                    }));
                 }
             }
         }
-
-        setRows(loadedRows);
-        setShowLoadModal(false);
     };
 
-    // Load Context and Form on Mount
-    React.useEffect(() => {
-        const contextParam = searchParams.get('context');
-        const formIdParam = searchParams.get('formId');
+    // Handle drag over for real-time field swapping within rows
+    const handleDragOver = (event: DragOverEvent) => {
+        const { active, over } = event;
+        if (!over) return;
 
-        if (contextParam) {
-            setIsLoadingContext(true);
-            try {
-                const context = JSON.parse(decodeURIComponent(contextParam));
-                fetchUpstreamDetails(context.upstream);
-            } catch (e) {
-                console.error("Failed to parse workflow context", e);
-                setIsLoadingContext(false);
-            }
-        }
+        const activeData = active.data.current;
 
-        if (formIdParam) {
-            fetch(`http://localhost:8081/api/forms/${formIdParam}`)
-                .then(res => res.json())
-                .then(data => {
-                    handleLoadForm(data);
-                })
-                .catch(err => alert("Failed to load requested form"));
-        }
-    }, [searchParams]);
+        // Only handle field-to-field swapping
+        if (activeData?.type !== 'field') return;
 
-    const fetchUpstreamDetails = async (nodes: any[]) => {
-        const variables: any[] = [];
-        const processedForms = new Set<string>();
+        const activeId = active.id as string;
+        const overId = over.id as string;
 
-        for (const node of nodes) {
-            if (!processedForms.has(node.formKey)) {
-                try {
-                    const res = await fetch(`http://localhost:8081/api/forms/${node.formKey}`);
-                    if (res.ok) {
-                        const formData = await res.json();
-                        const schema = formData.schema;
-                        let fields: any[] = [];
+        // Don't swap with itself
+        if (activeId === overId) return;
 
-                        if (Array.isArray(schema)) {
-                            if (schema.length > 0 && 'fields' in schema[0]) {
-                                fields = schema.flatMap((r: any) => r.fields);
-                            } else {
-                                fields = schema;
-                            }
-                        }
+        // Find source and target rows
+        const sourceRow = rows.find(r => r.fields.some(f => f.id === activeId));
+        const targetRow = rows.find(r => r.fields.some(f => f.id === overId));
 
-                        fields.forEach((f: any) => {
-                            if (f.key && f.label) {
-                                variables.push({
-                                    sourceNodeId: node.id,
-                                    sourceNodeLabel: node.label || 'Unknown Step',
-                                    key: f.key,
-                                    label: f.label,
-                                    type: f.type
-                                });
-                            }
-                        });
+        // Only handle same-row swaps in dragOver (cross-row in dragEnd)
+        if (sourceRow && targetRow && sourceRow.id === targetRow.id) {
+            const oldIndex = sourceRow.fields.findIndex(f => f.id === activeId);
+            const newIndex = sourceRow.fields.findIndex(f => f.id === overId);
+
+            if (oldIndex !== newIndex && oldIndex !== -1 && newIndex !== -1) {
+                setRows(rows.map(row => {
+                    if (row.id === sourceRow.id) {
+                        return { ...row, fields: arrayMove(row.fields, oldIndex, newIndex) };
                     }
-                } catch (e) { console.error(`Failed to fetch form ${node.formKey}`, e); }
-                processedForms.add(node.formKey);
+                    return row;
+                }));
             }
         }
-        setUpstreamVariables(variables);
-        setIsLoadingContext(false);
     };
 
-    const addReadOnlyField = (variable: any) => {
-        const newField: FormField = {
-            id: `field_${Date.now()}`,
-            type: 'text',
-            label: variable.label,
-            key: variable.key,
-            width: 2,
-            validation: { required: false },
-            logic: { disabled: 'true' },
-            data: { dataSource: 'static' },
-            helpText: `Value from ${variable.sourceNodeLabel}`,
-            placeholder: `Value of ${variable.key}`
-        };
-
-        if (rows.length === 0) {
-            setRows([{ id: `row_${Date.now()}`, fields: [newField] }]);
-        } else {
-            const lastRow = rows[rows.length - 1];
-            setRows(rows.map(r => r.id === lastRow.id ? { ...r, fields: [...r.fields, newField] } : r));
-        }
-        setSelectedField(newField);
-        setSettingsTab('general');
-    };
-
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-
-    // --- Actions ---
-
+    // ========================================================================
+    // ACTIONS
+    // ========================================================================
     const addRow = () => {
         setRows([...rows, { id: `row_${Date.now()}`, fields: [] }]);
+    };
+
+    const deleteRow = (rowId: string) => {
+        setRows(rows.filter(r => r.id !== rowId));
     };
 
     const addFieldToRow = (rowId: string, type: FieldType) => {
@@ -366,28 +566,22 @@ export default function EnterpriseFormDesigner() {
             type,
             label: template?.label || 'Field',
             key: `field_${Date.now()}`,
-            width: 2,
+            width: 50,
             validation: { required: false },
             logic: {},
-            data: { options: ['Option 1', 'Option 2'], dataSource: 'static' }
+            data: { options: [{ id: 'opt1', label: 'Option 1' }, { id: 'opt2', label: 'Option 2' }], dataSource: 'static' },
         };
-        setRows(rows.map(row => row.id === rowId ? { ...row, fields: [...row.fields, newField] } : row));
+        setRows(rows.map(r => r.id === rowId ? { ...r, fields: [...r.fields, newField] } : r));
         setSelectedField(newField);
         setSettingsTab('general');
     };
 
-    const updateField = (fieldId: string, updates: Partial<FormField> | { validation: Partial<ValidationRules> } | { logic: Partial<LogicRules> } | { data: Partial<DataConfig> }) => {
+    const updateField = (fieldId: string, updates: Partial<FormField>) => {
         setRows(rows.map(row => ({
             ...row,
             fields: row.fields.map(f => {
                 if (f.id === fieldId) {
-                    // Deep merge logic
-                    let updated = { ...f };
-                    if ('validation' in updates) updated.validation = { ...f.validation, ...updates.validation };
-                    else if ('logic' in updates) updated.logic = { ...f.logic, ...updates.logic };
-                    else if ('data' in updates) updated.data = { ...f.data, ...updates.data };
-                    else updated = { ...f, ...updates };
-
+                    const updated = { ...f, ...updates };
                     if (selectedField?.id === fieldId) setSelectedField(updated);
                     return updated;
                 }
@@ -396,71 +590,14 @@ export default function EnterpriseFormDesigner() {
         })));
     };
 
-    const deleteField = (rowId: string, fieldId: string) => {
-        setRows(rows.map(row => row.id === rowId ? { ...row, fields: row.fields.filter(f => f.id !== fieldId) } : row));
+    const deleteField = (fieldId: string) => {
+        setRows(rows.map(row => ({ ...row, fields: row.fields.filter(f => f.id !== fieldId) })));
         if (selectedField?.id === fieldId) setSelectedField(null);
     };
 
-    const deleteRow = (rowId: string) => {
-        setRows(rows.filter(r => r.id !== rowId));
-    };
-
-    const handleDragOver = (event: DragOverEvent) => {
-        const { active, over } = event;
-        if (!over) return;
-        const activeId = active.id as string;
-        const overId = over.id as string;
-        const activeRow = rows.find(row => row.fields.some(f => f.id === activeId));
-        const overRow = rows.find(row => row.fields.some(f => f.id === overId) || row.id === overId);
-        if (!activeRow || !overRow || activeRow.id === overRow.id) return;
-
-        const activeField = activeRow.fields.find(f => f.id === activeId);
-        if (!activeField) return;
-
-        setRows(rows.map(row => {
-            if (row.id === activeRow.id) {
-                return { ...row, fields: row.fields.filter(f => f.id !== activeId) };
-            } else if (row.id === overRow.id) {
-                const overFieldIndex = row.fields.findIndex(f => f.id === overId);
-                const newFields = [...row.fields];
-                if (overFieldIndex >= 0) newFields.splice(overFieldIndex, 0, activeField);
-                else newFields.push(activeField);
-                return { ...row, fields: newFields };
-            }
-            return row;
-        }));
-    };
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (over && active.id !== over.id) {
-            const isRowDrag = rows.some(r => r.id === active.id);
-            if (isRowDrag) {
-                setRows((items) => {
-                    const oldIndex = items.findIndex((item) => item.id === active.id);
-                    const newIndex = items.findIndex((item) => item.id === over.id);
-                    return arrayMove(items, oldIndex, newIndex);
-                });
-            } else {
-                const activeRow = rows.find(row => row.fields.some(f => f.id === active.id));
-                const overRow = rows.find(row => row.fields.some(f => f.id === over.id));
-                if (activeRow && overRow && activeRow.id === overRow.id) {
-                    setRows(rows.map(row => {
-                        if (row.id === activeRow.id) {
-                            const oldIndex = row.fields.findIndex(f => f.id === active.id);
-                            const newIndex = row.fields.findIndex(f => f.id === over.id);
-                            return { ...row, fields: arrayMove(row.fields, oldIndex, newIndex) };
-                        }
-                        return row;
-                    }));
-                }
-            }
-        }
-        setActiveId(null);
-    };
-
+    // Save/Load
     const handleSave = async () => {
-        if (!formName.trim()) { alert("Please name your form."); return; }
+        if (!formName.trim()) { showToast("Please name your form.", 'error'); return; }
         setIsSaving(true);
         try {
             const response = await fetch('http://localhost:8081/api/forms', {
@@ -468,452 +605,333 @@ export default function EnterpriseFormDesigner() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: formName, schema: rows })
             });
-            if (response.ok) alert('✓ Form saved!');
-            else alert('Failed to save');
-        } catch (error) { alert('Error saving'); }
+            if (response.ok) showToast('Form saved!', 'success');
+            else showToast('Failed to save', 'error');
+        } catch { showToast('Server error', 'error'); }
         finally { setIsSaving(false); }
+    };
+
+    const handleNewForm = () => {
+        if (rows.length > 0) setIsNewFormModalOpen(true);
+        else confirmNewForm();
+    };
+
+    const confirmNewForm = () => {
+        setFormName("Untitled Form");
+        setRows([]);
+        setSelectedField(null);
     };
 
     const handleOpenLoadModal = async () => {
         try {
             const res = await fetch('http://localhost:8081/api/forms');
-            if (res.ok) {
-                const data = await res.json();
-                setSavedForms(data);
-                setShowLoadModal(true);
-            } else {
-                alert('Failed to fetch forms');
-            }
-        } catch (e) {
-            alert('Error fetching forms');
-        }
+            if (res.ok) { setSavedForms(await res.json()); setShowLoadModal(true); }
+        } catch { showToast('Error loading forms', 'error'); }
     };
 
-
-
-    const handleAIGenerate = () => {
-        const userPrompt = prompt("✨ Describe the form you want to create:\n(e.g., 'Expense report with receipt upload and supervisor approval')");
-        if (!userPrompt) return;
-
-        setIsAIGenerating(true);
-        // Mocking AI generation - normally this would call an LLM
-        setTimeout(() => {
-            setFormName("Expense Report");
-            const newRows: FormRow[] = [
-                { id: 'row1', fields: [{ id: 'f1', type: 'text', label: 'Employee Name', key: 'empName', width: 2, validation: { required: true }, logic: {}, data: {} }, { id: 'f2', type: 'date', label: 'Date', key: 'date', width: 2, validation: { required: true }, logic: {}, data: {} }] },
-                { id: 'row2', fields: [{ id: 'f3', type: 'number', label: 'Amount', key: 'amount', width: 2, validation: { min: 0 }, logic: {}, data: {} }, { id: 'f4', type: 'select', label: 'Category', key: 'category', width: 2, validation: {}, logic: {}, data: { options: ['Travel', 'Meals', 'Supplies'], dataSource: 'static' } }] },
-                { id: 'row3', fields: [{ id: 'f5', type: 'file', label: 'Receipt Upload', key: 'receipt', width: 4, validation: {}, logic: {}, data: {} }] },
-                { id: 'row4', fields: [{ id: 'f6', type: 'people', label: 'Approver', key: 'approver', width: 4, validation: { required: true }, logic: {}, data: {} }] }
-            ];
-            setRows(newRows);
-            setIsAIGenerating(false);
-        }, 1500);
+    const handleLoadForm = (form: any) => {
+        setFormName(form.name);
+        let loadedRows: FormRow[] = [];
+        if (Array.isArray(form.schema)) {
+            if (form.schema[0]?.fields) {
+                loadedRows = form.schema;
+            } else {
+                loadedRows = [{ id: 'imported', fields: form.schema }];
+            }
+        }
+        setRows(loadedRows);
+        setShowLoadModal(false);
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col">
-            {/* Header */}
-            <header className="bg-white/95 backdrop-blur-md border-b-4 border-[#D41C2C] sticky top-0 z-50 shadow-lg">
-                <div className="max-w-[1920px] mx-auto px-6 py-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Link href="/" className="flex items-center gap-2 group">
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-[#D41C2C] blur-sm opacity-50"></div>
-                                    <div className="relative bg-gradient-to-br from-[#D41C2C] to-[#B81926] p-2 rounded-lg">
-                                        <FileText className="text-white" size={22} strokeWidth={2.5} />
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+            <div className="min-h-screen bg-gray-50 flex flex-col">
+                {/* HEADER */}
+                <header className="bg-white border-b-4 border-[#D41C2C] sticky top-0 z-50 shadow-sm">
+                    <div className="max-w-[1920px] mx-auto px-6 py-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <Link href="/" className="flex items-center gap-2">
+                                    <div className="bg-gradient-to-br from-[#D41C2C] to-[#B81926] p-2 rounded-lg">
+                                        <FileText className="text-white" size={20} />
                                     </div>
-                                </div>
-                                <div>
-                                    <h1 className="text-lg font-bold text-[#D41C2C]">SnapFlow Forms</h1>
-                                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Enterprise Builder v2.0</p>
-                                </div>
-                            </Link>
-                            <div className="h-8 w-[1px] bg-gray-200"></div>
-                            <input
-                                type="text"
-                                value={formName}
-                                onChange={(e) => setFormName(e.target.value)}
-                                className="text-base font-bold bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-[#D41C2C] focus:outline-none px-2 py-1 transition-colors"
-                                placeholder="Untitled Form"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={handleAIGenerate} className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-sm text-xs font-bold hover:bg-indigo-100 hover:shadow-md transition-all uppercase mr-2">
-                                <Sparkles size={14} className={isAIGenerating ? "animate-spin" : ""} /> {isAIGenerating ? 'Generating...' : 'AI Magic'}
-                            </button>
-                            <button onClick={handleOpenLoadModal} className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-sm text-xs font-bold hover:bg-slate-50 hover:text-[#D41C2C] uppercase transition-all">
-                                <FolderOpen size={14} /> Load
-                            </button>
-                            <button onClick={() => setPreviewMode(!previewMode)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-bold uppercase ${previewMode ? 'bg-[#D41C2C] text-white' : 'bg-gray-100 text-gray-700'}`}>
-                                <Eye size={14} /> {previewMode ? 'Edit' : 'Preview'}
-                            </button>
-                            <Link href="/designer" className="flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-sm text-xs font-bold hover:bg-gray-200 uppercase">
-                                <Layout size={14} /> Workflow
-                            </Link>
-                            <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-1.5 bg-[#D41C2C] text-white px-4 py-1.5 rounded-sm text-xs font-bold hover:bg-[#B81926] uppercase">
-                                <Save size={14} /> {isSaving ? 'Saving...' : 'Save'}
-                            </button>
+                                    <div>
+                                        <h1 className="text-lg font-bold text-gray-900">Form Designer</h1>
+                                        <p className="text-[9px] text-gray-500 uppercase tracking-wider">Professional Builder</p>
+                                    </div>
+                                </Link>
+                                <div className="h-8 w-px bg-gray-200" />
+                                <input
+                                    type="text"
+                                    value={formName}
+                                    onChange={(e) => setFormName(e.target.value)}
+                                    className="text-lg font-semibold bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-[#D41C2C] focus:outline-none px-2 py-1"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button onClick={handleNewForm} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                                    <FilePlus size={16} /> New
+                                </button>
+                                <button onClick={handleOpenLoadModal} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                                    <FolderOpen size={16} /> Open
+                                </button>
+                                <button onClick={() => setPreviewMode(!previewMode)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold ${previewMode ? 'bg-[#D41C2C] text-white' : 'bg-gray-100 text-gray-700'}`}>
+                                    <Eye size={16} /> {previewMode ? 'Edit' : 'Preview'}
+                                </button>
+                                <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-1.5 px-4 py-2 bg-[#D41C2C] text-white rounded-lg text-sm font-semibold hover:bg-[#B81926]">
+                                    <Save size={16} /> {isSaving ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            {/* Main */}
-            <main className="flex-1 flex overflow-hidden">
-                {/* Left Sidebar: Workflow Variables */}
-                {upstreamVariables.length > 0 && (
-                    <aside className="w-64 bg-slate-50 border-r border-slate-200 flex-shrink-0 flex flex-col overflow-hidden animate-in slide-in-from-left duration-300">
-                        <div className="p-4 border-b border-slate-200 bg-white">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">
-                                <Database size={16} className="text-blue-600" /> Workflow Data
-                            </h3>
-                            <p className="text-[10px] text-slate-500 mt-1">Variables from previous steps available for this form.</p>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                            {isLoadingContext ? (
-                                <div className="text-center p-4 text-slate-400 text-xs">Loading context...</div>
+                {/* MAIN */}
+                <main className="flex-1 flex overflow-hidden">
+                    {/* LEFT - Palette */}
+                    {!previewMode && (
+                        <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+                            <div className="p-4 border-b border-gray-100">
+                                <h2 className="font-bold text-gray-800 text-sm">Form Elements</h2>
+                                <p className="text-xs text-gray-500 mt-0.5">Drag into rows</p>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                                {FIELD_TEMPLATES.map(t => <PaletteItem key={t.type} template={t} />)}
+                            </div>
+                        </aside>
+                    )}
+
+                    {/* CENTER - Canvas */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="max-w-4xl mx-auto">
+                            {previewMode ? (
+                                <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+                                    <h2 className="text-2xl font-bold text-gray-900 mb-6">{formName}</h2>
+                                    <FormPreview rows={rows} />
+                                </div>
                             ) : (
-                                upstreamVariables.map((v, i) => (
-                                    <div key={i} className="bg-white border border-slate-200 rounded-md p-3 shadow-sm hover:border-blue-300 transition-colors group">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{v.sourceNodeLabel}</span>
-                                            <span className="text-[10px] font-mono text-slate-300 bg-slate-100 px-1 rounded">{v.type}</span>
-                                        </div>
-                                        <div className="font-bold text-slate-700 text-sm mb-1">{v.label}</div>
-                                        <code className="text-[10px] text-slate-500 bg-slate-50 px-1 py-0.5 rounded block mb-2 font-mono truncate">{v.key}</code>
+                                <div className="space-y-4">
+                                    {/* Add Row Button */}
+                                    <button onClick={addRow} className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-500 hover:border-[#D41C2C] hover:text-[#D41C2C] transition-colors flex items-center justify-center gap-2">
+                                        <Plus size={16} /> Add Row
+                                    </button>
 
-                                        <button
-                                            onClick={() => addReadOnlyField(v)}
-                                            className="w-full flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold py-1.5 rounded hover:bg-blue-100 active:scale-95 transition-all uppercase"
-                                        >
-                                            <Plus size={12} /> Add as Read-Only
-                                        </button>
-                                    </div>
-                                ))
+                                    {/* Rows */}
+                                    <SortableContext items={rows.map(r => `sortable-row-${r.id}`)} strategy={verticalListSortingStrategy}>
+                                        {rows.map(row => (
+                                            <DroppableRow key={row.id} row={row} onAddField={addFieldToRow} onDeleteRow={() => deleteRow(row.id)}>
+                                                <SortableContext items={row.fields.map(f => f.id)} strategy={horizontalListSortingStrategy}>
+                                                    {row.fields.map(field => (
+                                                        <RowField
+                                                            key={field.id}
+                                                            field={field}
+                                                            isSelected={selectedField?.id === field.id}
+                                                            onSelect={() => { setSelectedField(field); setSettingsTab('general'); }}
+                                                            onDelete={() => deleteField(field.id)}
+                                                            onResize={(w) => updateField(field.id, { width: w })}
+                                                        />
+                                                    ))}
+                                                </SortableContext>
+                                            </DroppableRow>
+                                        ))}
+                                    </SortableContext>
+
+                                    {rows.length === 0 && (
+                                        <div className="text-center py-16 text-gray-400">
+                                            <Rows size={48} className="mx-auto mb-4 opacity-30" />
+                                            <p className="text-lg font-medium">No rows yet</p>
+                                            <p className="text-sm">Click "Add Row" to start building your form</p>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
-                    </aside>
-                )}
+                    </div>
 
-                {/* Canvas */}
-                <div className="flex-1 overflow-y-auto">
-                    <div className="p-6 max-w-7xl mx-auto">
-                        <div className="bg-white rounded-xl shadow-xl border-2 border-slate-200 min-h-[700px]">
-                            <div className="bg-gradient-to-r from-slate-50 via-red-50 to-slate-50 px-6 py-4 border-b-2 border-slate-200 flex justify-between items-center">
-                                <div>
-                                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                        <Layout size={20} className="text-[#D41C2C]" /> Form Canvas
-                                    </h2>
-                                    <p className="text-xs text-slate-600">Drag fields between rows • Multi-column layouts • Enterprise validation</p>
-                                </div>
-                                <button onClick={addRow} className="flex items-center gap-2 bg-gradient-to-r from-[#D41C2C] to-[#B81926] text-white px-4 py-2 rounded-lg text-sm font-bold hover:shadow-lg transition-all">
-                                    <Plus size={16} /> Add Row
+                    {/* RIGHT - Settings */}
+                    {!previewMode && selectedField && (
+                        <aside className="w-80 bg-white border-l border-gray-200 flex flex-col">
+                            <div className="p-4 bg-gradient-to-r from-[#D41C2C] to-[#B81926] flex justify-between items-center">
+                                <h3 className="font-bold text-white flex items-center gap-2">
+                                    <Settings2 size={16} /> Field Settings
+                                </h3>
+                                <button onClick={() => setSelectedField(null)} className="text-white/80 hover:text-white p-1">
+                                    <X size={18} />
                                 </button>
                             </div>
 
-                            <div className="p-6">
-                                {rows.length === 0 ? (
-                                    <div className="h-[500px] flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl">
-                                        <div className="bg-gradient-to-br from-red-100 to-orange-100 p-10 rounded-2xl mb-4">
-                                            <Sparkles size={48} className="text-[#D41C2C]" />
+                            {/* Tabs */}
+                            <div className="flex border-b border-gray-200">
+                                {['general', 'validation', 'options'].map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setSettingsTab(tab as any)}
+                                        className={`flex-1 py-2.5 text-xs font-semibold uppercase ${settingsTab === tab ? 'border-b-2 border-[#D41C2C] text-[#D41C2C]' : 'text-gray-500'}`}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4">
+                                {/* GENERAL */}
+                                {settingsTab === 'general' && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Label</label>
+                                            <input type="text" value={selectedField.label} onChange={(e) => updateField(selectedField.id, { label: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#D41C2C] focus:outline-none" />
                                         </div>
-                                        <p className="font-bold text-xl text-slate-700 mb-2">Start from Scratch</p>
-                                        <p className="text-sm text-slate-500 mb-6">Click "Add Row" to start building your form</p>
-                                    </div>
-                                ) : (
-                                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={(e) => setActiveId(e.active.id as string)} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-                                        <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                                            <div className="space-y-4">
-                                                {rows.map((row) => (
-                                                    <SortableRow
-                                                        key={row.id}
-                                                        row={row}
-                                                        selectedField={selectedField}
-                                                        onSelectField={setSelectedField}
-                                                        onDeleteField={deleteField}
-                                                        onAddField={addFieldToRow}
-                                                        onDeleteRow={deleteRow}
-                                                    />
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Field Key</label>
+                                            <input type="text" value={selectedField.key} onChange={(e) => updateField(selectedField.id, { key: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono bg-gray-50" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Placeholder</label>
+                                            <input type="text" value={selectedField.placeholder || ''} onChange={(e) => updateField(selectedField.id, { placeholder: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                                Width <span className="text-[#D41C2C] font-bold">{selectedField.width}%</span>
+                                            </label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="range"
+                                                    min="10"
+                                                    max="100"
+                                                    step="5"
+                                                    value={selectedField.width}
+                                                    onChange={(e) => updateField(selectedField.id, { width: parseInt(e.target.value) })}
+                                                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#D41C2C]"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    min="10"
+                                                    max="100"
+                                                    value={selectedField.width}
+                                                    onChange={(e) => updateField(selectedField.id, { width: Math.min(100, Math.max(10, parseInt(e.target.value) || 50)) })}
+                                                    className="w-16 px-2 py-1 border border-gray-200 rounded-lg text-sm text-center font-semibold"
+                                                />
+                                            </div>
+                                            <div className="flex justify-between mt-2">
+                                                {[25, 33, 50, 75, 100].map(p => (
+                                                    <button
+                                                        key={p}
+                                                        onClick={() => updateField(selectedField.id, { width: p })}
+                                                        className={`px-2 py-1 text-xs rounded border transition-colors ${selectedField.width === p ? 'bg-[#D41C2C] text-white border-[#D41C2C]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                                    >
+                                                        {p}%
+                                                    </button>
                                                 ))}
                                             </div>
-                                        </SortableContext>
-                                    </DndContext>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Help Text</label>
+                                            <textarea value={selectedField.helpText || ''} onChange={(e) => updateField(selectedField.id, { helpText: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none" rows={2} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* VALIDATION */}
+                                {settingsTab === 'validation' && (
+                                    <ValidationPanel
+                                        field={selectedField}
+                                        onUpdate={(v) => updateField(selectedField.id, { validation: { ...selectedField.validation, ...v } })}
+                                    />
+                                )}
+
+                                {/* OPTIONS */}
+                                {settingsTab === 'options' && (selectedField.type === 'select' || selectedField.type === 'radio') && (
+                                    <div className="space-y-3">
+                                        <p className="text-xs text-gray-500">Define ID (for logic) and Label (displayed)</p>
+                                        {(selectedField.data?.options || []).map((opt, idx) => {
+                                            const isObj = typeof opt === 'object';
+                                            const id = isObj ? (opt as OptionItem).id : opt;
+                                            const label = isObj ? (opt as OptionItem).label : opt;
+                                            return (
+                                                <div key={idx} className="flex gap-2">
+                                                    <input type="text" value={id} placeholder="ID"
+                                                        onChange={(e) => {
+                                                            const newOpts = [...(selectedField.data?.options || [])] as OptionItem[];
+                                                            newOpts[idx] = { id: e.target.value, label };
+                                                            updateField(selectedField.id, { data: { ...selectedField.data, options: newOpts } });
+                                                        }}
+                                                        className="flex-1 px-2 py-1.5 border border-gray-200 rounded text-xs font-mono bg-gray-50" />
+                                                    <input type="text" value={label} placeholder="Label"
+                                                        onChange={(e) => {
+                                                            const newOpts = [...(selectedField.data?.options || [])] as OptionItem[];
+                                                            newOpts[idx] = { id, label: e.target.value };
+                                                            updateField(selectedField.id, { data: { ...selectedField.data, options: newOpts } });
+                                                        }}
+                                                        className="flex-1 px-2 py-1.5 border border-gray-200 rounded text-xs" />
+                                                    <button onClick={() => {
+                                                        const newOpts = (selectedField.data?.options || []).filter((_, i) => i !== idx) as OptionItem[];
+                                                        updateField(selectedField.id, { data: { ...selectedField.data, options: newOpts } });
+                                                    }} className="p-1.5 text-gray-400 hover:text-red-500">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                        <button onClick={() => {
+                                            const newOpts = [...(selectedField.data?.options || []), { id: `opt_${Date.now()}`, label: 'New Option' }] as OptionItem[];
+                                            updateField(selectedField.id, { data: { ...selectedField.data, options: newOpts } });
+                                        }} className="w-full py-2 border border-dashed border-gray-300 rounded-lg text-xs font-semibold text-gray-500 hover:border-[#D41C2C] hover:text-[#D41C2C]">
+                                            <Plus size={14} className="inline mr-1" /> Add Option
+                                        </button>
+                                    </div>
+                                )}
+
+                                {settingsTab === 'options' && !['select', 'radio'].includes(selectedField.type) && (
+                                    <div className="text-center py-8 text-gray-400">
+                                        <AlertCircle size={24} className="mx-auto mb-2" />
+                                        <p className="text-sm">Options only apply to Dropdown and Radio fields</p>
+                                    </div>
                                 )}
                             </div>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Right Settings (Enhanced) */}
-                {!previewMode && selectedField && (
-                    <aside className="w-80 bg-white border-l-2 border-slate-200 flex-shrink-0 flex flex-col h-full shadow-2xl">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-[#D41C2C] to-[#B81926] px-4 py-4 flex justify-between items-center flex-shrink-0">
-                            <div>
-                                <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2">
-                                    <Settings2 size={16} />
-                                    {selectedField.type} Settings
-                                </h3>
-                            </div>
-                            <button onClick={() => setSelectedField(null)} className="text-white hover:bg-white/20 p-1.5 rounded transition-all">
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        {/* Tabs */}
-                        <div className="flex border-b border-gray-200 bg-gray-50">
-                            {[
-                                { id: 'general', icon: Settings2, label: 'General' },
-                                { id: 'data', icon: Activity, label: 'Data', show: ['select', 'checkbox'].includes(selectedField.type) },
-                                { id: 'validation', icon: Shield, label: 'Valid' },
-                                { id: 'logic', icon: Filter, label: 'Logic' }
-                            ].filter(t => t.show !== false).map((tab: any) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setSettingsTab(tab.id as any)}
-                                    className={`flex-1 py-3 border-b-2 text-[10px] font-bold uppercase transition-all flex flex-col items-center gap-1 ${settingsTab === tab.id
-                                        ? 'border-[#D41C2C] text-[#D41C2C] bg-white'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    <tab.icon size={14} />
-                                    {tab.label}
+                            <div className="p-4 border-t border-gray-100">
+                                <button onClick={() => deleteField(selectedField.id)}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-semibold border border-red-200">
+                                    <Trash2 size={16} /> Delete Field
                                 </button>
-                            ))}
-                        </div>
+                            </div>
+                        </aside>
+                    )}
+                </main>
 
-                        {/* Content */}
-                        <div className="p-5 overflow-y-auto flex-1 space-y-5">
-                            {/* GENERAL TAB */}
-                            {settingsTab === 'general' && (
-                                <>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Label</label>
-                                        <input type="text" value={selectedField.label} onChange={(e) => updateField(selectedField.id, { label: e.target.value })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Variable Key</label>
-                                        <input type="text" value={selectedField.key} onChange={(e) => updateField(selectedField.id, { key: e.target.value })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none bg-slate-50" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Width</label>
-                                        <div className="grid grid-cols-4 gap-1.5">
-                                            {[1, 2, 3, 4].map((w) => (
-                                                <button
-                                                    key={w}
-                                                    onClick={() => updateField(selectedField.id, { width: w as any })}
-                                                    className={`p-2 border-2 rounded text-xs font-bold transition-all ${selectedField.width === w ? 'border-[#D41C2C] bg-red-50 text-[#D41C2C]' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
-                                                >
-                                                    {w === 4 ? '100%' : `${w * 25}%`}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Placeholder</label>
-                                        <input type="text" value={selectedField.placeholder || ''} onChange={(e) => updateField(selectedField.id, { placeholder: e.target.value })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Help Text</label>
-                                        <textarea value={selectedField.helpText || ''} onChange={(e) => updateField(selectedField.id, { helpText: e.target.value })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none resize-none" rows={2} />
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded border border-purple-200">
+                {/* Modals */}
+                <ConfirmationModal isOpen={isNewFormModalOpen} onClose={() => setIsNewFormModalOpen(false)} onConfirm={confirmNewForm}
+                    title="Start New Form?" message="This will clear all content. Unsaved changes will be lost." confirmText="Start New" />
+
+                {showLoadModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center">
+                        <div className="bg-white rounded-xl shadow-2xl w-[500px] max-h-[70vh] overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                                <h3 className="font-bold text-lg">Open Form</h3>
+                                <button onClick={() => setShowLoadModal(false)} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
+                            </div>
+                            <div className="p-4 max-h-[50vh] overflow-y-auto space-y-2">
+                                {savedForms.length === 0 ? <p className="text-center text-gray-400 py-8">No saved forms</p> : savedForms.map(form => (
+                                    <button key={form.id} onClick={() => handleLoadForm(form)}
+                                        className="w-full p-4 border border-gray-200 rounded-lg hover:border-[#D41C2C] text-left flex items-center gap-3">
+                                        <FileText className="text-[#D41C2C]" />
                                         <div>
-                                            <span className="text-sm font-bold text-purple-800">Show on Start?</span>
-                                            <p className="text-[10px] text-purple-600">If checked, this field will be prompted when starting the workflow.</p>
+                                            <div className="font-semibold">{form.name}</div>
+                                            <div className="text-xs text-gray-500">ID: {form.id}</div>
                                         </div>
-                                        <input type="checkbox" checked={selectedField.showOnStart || false} onChange={(e) => updateField(selectedField.id, { showOnStart: e.target.checked })} className="w-5 h-5 text-purple-600 border-2 border-purple-300 rounded focus:ring-purple-600" />
-                                    </div>
-                                </>
-                            )}
-
-                            {/* DATA TAB */}
-                            {settingsTab === 'data' && (
-                                <>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Source</label>
-                                        <div className="flex bg-slate-100 p-1 rounded-lg">
-                                            <button
-                                                onClick={() => updateField(selectedField.id, { data: { dataSource: 'static' } })}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${selectedField.data.dataSource === 'static' ? 'bg-white shadow text-[#D41C2C]' : 'text-slate-500'}`}
-                                            >Static</button>
-                                            <button
-                                                onClick={() => updateField(selectedField.id, { data: { dataSource: 'api' } })}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${selectedField.data.dataSource === 'api' ? 'bg-white shadow text-[#D41C2C]' : 'text-slate-500'}`}
-                                            >API / Dynamic</button>
-                                        </div>
-                                    </div>
-
-                                    {selectedField.data.dataSource === 'static' ? (
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Options (one per line)</label>
-                                            {(selectedField.type === 'select' || selectedField.type === 'radio') && (
-                                                <textarea
-                                                    value={selectedField.data.options?.join('\n') || ''}
-                                                    onChange={(e) => updateField(selectedField.id, { data: { options: e.target.value.split('\n') } })}
-                                                    className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none resize-none"
-                                                    rows={8}
-                                                />
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">API Endpoint</label>
-                                                <input type="text" placeholder="https://api.example.com/options" value={selectedField.data.apiEndpoint || ''} onChange={(e) => updateField(selectedField.id, { data: { apiEndpoint: e.target.value } })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Cascading: Parent Field Key</label>
-                                                <input type="text" placeholder="e.g. country_field" value={selectedField.data.parentFieldKey || ''} onChange={(e) => updateField(selectedField.id, { data: { parentFieldKey: e.target.value } })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none" />
-                                                <p className="text-[10px] text-slate-500 mt-1">If set, this field will refresh when the parent field changes.</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-
-                            {/* VALIDATION TAB */}
-                            {settingsTab === 'validation' && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded border border-slate-200">
-                                        <span className="text-sm font-bold text-slate-700">Required Field</span>
-                                        <input type="checkbox" checked={selectedField.validation.required || false} onChange={(e) => updateField(selectedField.id, { validation: { required: e.target.checked } })} className="w-5 h-5 text-[#D41C2C] border-2 border-slate-300 rounded focus:ring-[#D41C2C]" />
-                                    </div>
-
-                                    {(selectedField.type === 'text' || selectedField.type === 'textarea') && (
-                                        <>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Min Length</label>
-                                                    <input type="number" value={selectedField.validation.minLength || ''} onChange={(e) => updateField(selectedField.id, { validation: { minLength: parseInt(e.target.value) } })} className="w-full px-2 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Max Length</label>
-                                                    <input type="number" value={selectedField.validation.maxLength || ''} onChange={(e) => updateField(selectedField.id, { validation: { maxLength: parseInt(e.target.value) } })} className="w-full px-2 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none" />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Regex Pattern</label>
-                                                <input type="text" placeholder="^A-Z+$" value={selectedField.validation.pattern || ''} onChange={(e) => updateField(selectedField.id, { validation: { pattern: e.target.value } })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none" />
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {selectedField.type === 'number' && (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Min Value</label>
-                                                <input type="number" value={selectedField.validation.min || ''} onChange={(e) => updateField(selectedField.id, { validation: { min: parseInt(e.target.value) } })} className="w-full px-2 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Max Value</label>
-                                                <input type="number" value={selectedField.validation.max || ''} onChange={(e) => updateField(selectedField.id, { validation: { max: parseInt(e.target.value) } })} className="w-full px-2 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none" />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Custom Error Message</label>
-                                        <input type="text" value={selectedField.validation.customMessage || ''} onChange={(e) => updateField(selectedField.id, { validation: { customMessage: e.target.value } })} className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm focus:border-[#D41C2C] focus:outline-none" placeholder="Please check this field" />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* LOGIC TAB */}
-                            {settingsTab === 'logic' && (
-                                <div className="space-y-4">
-                                    <div className="bg-amber-50 border border-amber-200 p-3 rounded text-xs text-amber-800">
-                                        Conditions are evaluated at runtime. Support standard Javascript expressions.
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-2">
-                                            <Eye size={12} /> Visibility Condition (Show if...)
-                                        </label>
-                                        <textarea
-                                            value={selectedField.logic.visibility || ''}
-                                            onChange={(e) => updateField(selectedField.id, { logic: { visibility: e.target.value } })}
-                                            className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none resize-none"
-                                            rows={3}
-                                            placeholder="data.country == 'US' && data.age >= 18"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-2">
-                                            <Shield size={12} /> Disable Condition (Disable if...)
-                                        </label>
-                                        <textarea
-                                            value={selectedField.logic.disabled || ''}
-                                            onChange={(e) => updateField(selectedField.id, { logic: { disabled: e.target.value } })}
-                                            className="w-full px-3 py-2 border-2 border-slate-300 rounded text-sm font-mono focus:border-[#D41C2C] focus:outline-none resize-none"
-                                            rows={3}
-                                            placeholder="data.isReadOnly == true"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="p-4 border-t border-slate-200 bg-slate-50 mt-auto">
-                            <button
-                                onClick={() => {
-                                    const row = rows.find(r => r.fields.some(f => f.id === selectedField.id));
-                                    if (row && confirm('Are you sure you want to delete this field?')) {
-                                        deleteField(row.id, selectedField.id);
-                                    }
-                                }}
-                                className="w-full flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 p-2 rounded-lg font-bold text-sm transition-all border border-transparent hover:border-red-200 uppercase"
-                            >
-                                <Trash2 size={16} /> Delete Field
-                            </button>
-                        </div>
-                    </aside>
-                )}
-            </main>
-
-            {/* Load Modal */}
-            {showLoadModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center">
-                    <div className="bg-white rounded-xl shadow-2xl w-[600px] max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                                <FolderOpen size={20} className="text-[#D41C2C]" /> Open Form
-                            </h3>
-                            <button onClick={() => setShowLoadModal(false)} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
-                                <X size={20} className="text-gray-500" />
-                            </button>
-                        </div>
-                        <div className="p-4 overflow-y-auto flex-1">
-                            {savedForms.length === 0 ? (
-                                <div className="text-center py-10 text-gray-500">
-                                    <p>No forms saved yet.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 gap-3">
-                                    {savedForms.map((form) => (
-                                        <button
-                                            key={form.id}
-                                            onClick={() => handleLoadForm(form)}
-                                            className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-[#D41C2C] hover:bg-red-50 text-left transition-all group"
-                                        >
-                                            <div className="bg-red-100 p-3 rounded-lg group-hover:bg-red-200 text-[#D41C2C]">
-                                                <Layout size={20} />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 group-hover:text-[#D41C2C]">{form.name}</h4>
-                                                <p className="text-xs text-gray-500 mt-1">ID: {form.id}</p>
-                                            </div>
-                                            <div className="ml-auto text-xs font-bold text-gray-400 group-hover:text-[#D41C2C] uppercase tracking-wider">
-                                                Open
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+
+                <ToastComponent />
+            </div>
+        </DndContext>
     );
 }

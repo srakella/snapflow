@@ -11,6 +11,15 @@ export function useForms(nodeType?: string) {
         if (nodeType === 'task' || nodeType === 'start' || nodeType === 'userTask') {
             fetchForms();
         }
+
+        const handleFocus = () => {
+            if (nodeType === 'task' || nodeType === 'start' || nodeType === 'userTask') {
+                fetchForms();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
     }, [nodeType]);
 
     const fetchForms = async () => {
